@@ -11,6 +11,7 @@ YT_CHANNELS = {
     "The Fantasy Footballers": "UC-No2ITxJsNt50oJQ3fLmUA",
     "FantasyPros": "UCZYaxEBdyKDsZfq_JGZwIeQ",
     "Flock Fantasy": "UC3jkBCIA687DNpQOZFSbtsg"
+    "Fantasy Football Today": "UCviK78rIWXhZdFzJ1Woi7Fg"
 }
 
 # Words in video titles that signal waiver/pickup/rankings advice
