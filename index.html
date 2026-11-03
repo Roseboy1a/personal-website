@@ -83,7 +83,42 @@
     <h3>Very little Experinece</h3>
     <p>Use computer everyday and know how to use an AI, first time coding.</p>
   </div>
+<h2>Live ESPN Fantasy Assistant</h2>
+  <div id="fantasy-dashboard">
+    <div class="card"><p>Loading live ESPN waiver wire upgrades...</p></div>
+  </div>
 
+  <script>
+    async function loadFantasyData() {
+      const container = document.getElementById('fantasy-dashboard');
+      try {
+        const res = await fetch('/api/fantasy');
+        const data = await res.json();
+        if (data.error) {
+          container.innerHTML = `<div class="card"><p>Setup note: ${data.error}</p></div>`;
+          return;
+        }
+        let html = `<p class="subtitle" style="margin-bottom: 16px;">${data.team} — Week ${data.week} Live Waiver Targets</p>`;
+        if (data.recommendations.length === 0) {
+          html += `<div class="card"><p>No immediate projected upgrades on waivers right now.</p></div>`;
+        } else {
+          data.recommendations.forEach(rec => {
+            html += `
+              <div class="card">
+                <h3>${rec.pos} Upgrade (+${rec.diff} proj pts)</h3>
+                <p><strong>Add:</strong> ${rec.add} (${rec.add_proj} pts) &nbsp;|&nbsp; <strong>Drop/Replace:</strong> ${rec.drop} (${rec.drop_proj} pts)</p>
+              </div>`;
+          });
+        }
+        container.innerHTML = html;
+      } catch (err) {
+        container.innerHTML = `<div class="card"><p>Could not load fantasy data.</p></div>`;
+      }
+    }
+    loadFantasyData();
+    // Automatically re-checks every 15 minutes while the tab is open
+    setInterval(loadFantasyData, 900000);
+  </script>
   <div class="links">
     <a href="mailto:Cjrcolton@gmail.com">Email Me</a>
     <a href="https://www.linkedin.com/in/colton-rosetta-1b13a8318/" target="_blank">LinkedIn</a>
