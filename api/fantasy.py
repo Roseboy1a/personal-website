@@ -3,10 +3,8 @@ import json
 import os
 import urllib.request
 import xml.etree.ElementTree as ET
-from espn_api.football import League
-from youtube_transcript_api import YouTubeTranscriptApi
 
-# Top Fantasy Football YouTube Channels (Name: Channel ID)
+# Top Fantasy Football YouTube Channels
 YT_CHANNELS = {
     "The Fantasy Footballers": "UC-No2ITxJsNt50oJQ3fLmUA",
     "FantasyPros": "UCZYaxEBdyKDsZfq_JGZwIeQ",
@@ -14,44 +12,56 @@ YT_CHANNELS = {
     "Fantasy Football Today": "UCviK78rIWXhZdFzJ1Woi7Fg"
 }
 
-# Words in video titles that signal waiver/pickup/rankings advice
 TARGET_KEYWORDS = ["waiver", "pickup", "add", "must", "stash", "buy", "rank", "start", "week", "sleeper", "target"]
 
-def fetch_recent_youtube_transcripts():
-    """Fetches recent video transcripts from top Fantasy Football YouTube channels."""
+def fetch_recent_youtube_videos():
+    """Fetches recent video titles & transcripts safely within Vercel's timeout limit."""
     video_data = []
-    ns = {'atom': 'http://www.w3.org/2005/Atom', 'yt': 'http://www.youtube.com/xml/schemas/2015'}
+    ns = {'atom': 'http://www.w3.org/2005/Atom', 'yt': 'http://www.youtube.com/xml/schemas/2015', 'media': 'http://search.yahoo.com/mrss/'}
+
+    try:
+        from youtube_transcript_api import YouTubeTranscriptApi
+        has_yt_lib = True
+    except Exception:
+        has_yt_lib = False
 
     for channel_name, channel_id in YT_CHANNELS.items():
         try:
-            # Replace 'UC' with 'UULF' to pull only full-length videos (skips YouTube Shorts)
             playlist_id = "UULF" + channel_id[2:]
             url = f"https://www.youtube.com/feeds/videos.xml?playlist_id={playlist_id}"
             req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
-            with urllib.request.urlopen(req, timeout=4) as response:
+            with urllib.request.urlopen(req, timeout=2.0) as response:
                 xml_data = response.read()
 
             root = ET.fromstring(xml_data)
-            entries = root.findall('atom:entry', ns)[:4]  # Check the 4 newest full videos per channel
+            entries = root.findall('atom:entry', ns)[:2]  # Check 2 newest videos per channel for speed
 
             for entry in entries:
-                title = entry.find('atom:title', ns).text
-                vid_id = entry.find('yt:videoId', ns).text
+                title = entry.find('atom:title', ns).text or ""
+                vid_id = entry.find('yt:videoId', ns).text or ""
+                desc_elem = entry.find('media:group/media:description', ns)
+                desc_text = (desc_elem.text if desc_elem is not None and desc_elem.text else "").lower()
 
                 if any(k in title.lower() for k in TARGET_KEYWORDS):
-                    try:
-                        # Pull English transcript of the video
-                        transcript_list = YouTubeTranscriptApi.get_transcript(vid_id, languages=['en'])
-                        full_text = " ".join([t['text'] for t in transcript_list]).lower()
-                        video_data.append({
-                            "channel": channel_name,
-                            "title": title,
-                            "video_id": vid_id,
-                            "text": full_text
-                        })
-                    except Exception:
-                        # Skip if captions aren't generated yet
-                        continue
+                    combined_text = f"{title.lower()} {desc_text}"
+                    if has_yt_lib:
+                        try:
+                            # Supports both old and new versions of youtube-transcript-api
+                            if hasattr(YouTubeTranscriptApi, 'get_transcript'):
+                                t_list = YouTubeTranscriptApi.get_transcript(vid_id, languages=['en'])
+                                combined_text += " " + " ".join([t['text'] for t in t_list]).lower()
+                            else:
+                                ytt = YouTubeTranscriptApi()
+                                fetched = ytt.fetch(vid_id)
+                                combined_text += " " + " ".join([snippet.text for snippet in fetched]).lower()
+                        except Exception:
+                            pass
+
+                    video_data.append({
+                        "channel": channel_name,
+                        "title": title,
+                        "text": combined_text
+                    })
         except Exception:
             continue
 
@@ -61,11 +71,17 @@ def fetch_recent_youtube_transcripts():
 class handler(BaseHTTPRequestHandler):
     def do_GET(self):
         try:
-            league_id = int(os.environ.get("LEAGUE_ID", 0))
-            year = int(os.environ.get("LEAGUE_YEAR", 2026))
-            team_name = os.environ.get("TEAM_NAME", "")
-            espn_s2 = os.environ.get("ESPN_S2", "")
-            swid = os.environ.get("SWID", "")
+            from espn_api.football import League
+
+            league_id_raw = os.environ.get("LEAGUE_ID", "").strip()
+            if not league_id_raw:
+                raise ValueError("LEAGUE_ID is missing in Vercel Environment Variables.")
+
+            league_id = int(league_id_raw)
+            year = int(os.environ.get("LEAGUE_YEAR", "2026").strip())
+            team_name = os.environ.get("TEAM_NAME", "").strip()
+            espn_s2 = os.environ.get("ESPN_S2", "").strip()
+            swid = os.environ.get("SWID", "").strip()
 
             league = League(league_id=league_id, year=year, espn_s2=espn_s2, swid=swid)
             week = league.current_week
@@ -76,7 +92,6 @@ class handler(BaseHTTPRequestHandler):
                 stats = player.stats.get(week, {})
                 return round(stats.get('projected_points', player.projected_total_points / 17), 1)
 
-            # 1. Grab your current roster
             roster = []
             for p in my_team.roster:
                 roster.append({
@@ -87,11 +102,8 @@ class handler(BaseHTTPRequestHandler):
                     "status": p.injuryStatus
                 })
 
-            # 2. Scan recent YouTube videos from fantasy channels
-            yt_videos = fetch_recent_youtube_transcripts()
-
-            # 3. Analyze top 75 free agents against YouTube transcripts + ESPN projections
-            free_agents = league.free_agents(week=week, size=75)
+            yt_videos = fetch_recent_youtube_videos()
+            free_agents = league.free_agents(week=week, size=60)
             recommendations = []
 
             for pos in ['QB', 'RB', 'WR', 'TE']:
@@ -107,17 +119,18 @@ class handler(BaseHTTPRequestHandler):
 
                     espn_proj = get_proj(fa)
                     name_lower = fa.name.lower()
-                    
-                    # Count how many videos & channels mention this player's full name
+                    last_name = name_lower.split()[-1] if " " in name_lower else name_lower
+
                     mentioned_channels = set()
                     total_mentions = 0
                     for v in yt_videos:
                         count = v["text"].count(name_lower)
+                        if count == 0 and len(last_name) > 4:
+                            count = v["text"].count(last_name)
                         if count > 0:
                             mentioned_channels.add(v["channel"])
                             total_mentions += count
 
-                    # Calculate Blended Score: ESPN Projection + YouTube Hype Bonus (up to +2.5 pts)
                     yt_bonus = min(len(mentioned_channels) * 0.8 + (total_mentions * 0.15), 2.5)
                     blended_score = round(espn_proj + yt_bonus, 1)
 
@@ -134,10 +147,9 @@ class handler(BaseHTTPRequestHandler):
                             "diff": round(blended_score - weakest["proj"], 1)
                         })
 
-                # Sort by highest Blended Score (ESPN Proj + YouTube Consensus)
                 scored_fas.sort(key=lambda x: x["blended_score"], reverse=True)
                 if scored_fas:
-                    recommendations.extend(scored_fas[:2])  # Top 2 per position
+                    recommendations.extend(scored_fas[:2])
 
             self.send_response(200)
             self.send_header('Content-type', 'application/json')
@@ -150,7 +162,8 @@ class handler(BaseHTTPRequestHandler):
             }).encode('utf-8'))
 
         except Exception as e:
-            self.send_response(500)
+            # Always return 200 with JSON error so the frontend displays the exact reason
+            self.send_response(200)
             self.send_header('Content-type', 'application/json')
             self.end_headers()
             self.wfile.write(json.dumps({"error": str(e)}).encode('utf-8'))
