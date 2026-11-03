@@ -1,1 +1,3 @@
 espn-api
+youtube-transcript-api
+requests
