@@ -98,15 +98,27 @@
           container.innerHTML = `<div class="card"><p>Setup note: ${data.error}</p></div>`;
           return;
         }
-        let html = `<p class="subtitle" style="margin-bottom: 16px;">${data.team} — Week ${data.week} Live Waiver Targets</p>`;
+
+        let html = `<p class="subtitle" style="margin-bottom: 16px;">
+          ${data.team} — Week ${data.week} | Scanned ${data.videos_scanned.length} Recent YouTube Waiver Videos
+        </p>`;
+
         if (data.recommendations.length === 0) {
-          html += `<div class="card"><p>No immediate projected upgrades on waivers right now.</p></div>`;
+          html += `<div class="card"><p>No immediate upgrades found right now.</p></div>`;
         } else {
           data.recommendations.forEach(rec => {
+            const ytBadge = rec.yt_channels.length > 0
+              ? `<span style="color: #4ade80; font-size: 0.85rem;">🔥 Mentioned ${rec.yt_mentions}x on: ${rec.yt_channels.join(', ')}</span>`
+              : `<span style="color: #666; font-size: 0.85rem;">Pure ESPN Projection Pickup</span>`;
+
             html += `
               <div class="card">
-                <h3>${rec.pos} Upgrade (+${rec.diff} proj pts)</h3>
-                <p><strong>Add:</strong> ${rec.add} (${rec.add_proj} pts) &nbsp;|&nbsp; <strong>Drop/Replace:</strong> ${rec.drop} (${rec.drop_proj} pts)</p>
+                <h3>[${rec.pos}] Add ${rec.add} — Blended Score: ${rec.blended_score} pts (${rec.diff >= 0 ? '+' + rec.diff : rec.diff})</h3>
+                <p style="margin-bottom: 6px;">
+                  <strong>ESPN Proj:</strong> ${rec.espn_proj} pts &nbsp;|&nbsp; 
+                  <strong>Replaces:</strong> ${rec.drop} (${rec.drop_proj} pts)
+                </p>
+                <p>${ytBadge}</p>
               </div>`;
           });
         }
@@ -116,7 +128,6 @@
       }
     }
     loadFantasyData();
-    // Automatically re-checks every 15 minutes while the tab is open
     setInterval(loadFantasyData, 900000);
   </script>
   <div class="links">
