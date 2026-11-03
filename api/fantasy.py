@@ -8,7 +8,7 @@ import xml.etree.ElementTree as ET
 YT_CHANNELS = {
     "The Fantasy Footballers": "UC-No2ITxJsNt50oJQ3fLmUA",
     "FantasyPros": "UCZYaxEBdyKDsZfq_JGZwIeQ",
-    "Flock Fantasy": "UC3jkBCIA687DNpQOZFSbtsg"
+    "Flock Fantasy": "UC3jkBCIA687DNpQOZFSbtsg",
     "Fantasy Football Today": "UCviK78rIWXhZdFzJ1Woi7Fg"
 }
 
