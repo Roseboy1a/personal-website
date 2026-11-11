@@ -1,4 +1,5 @@
 from http.server import BaseHTTPRequestHandler
+from concurrent.futures import ThreadPoolExecutor
 import json
 import os
 import random
@@ -12,17 +13,22 @@ YT_CHANNELS = {
     "Flock Fantasy": "UC3jkBCIA687DNpQOZFSbtsg",
     "BDGE Fantasy": "UCunM5df2213-M20G9f25L6w",
     "Underdog Fantasy": "UC7T153_022p3N2P4N02I6vQ",
-    "Fantasy Football Today": "UCviK78rIWXhZdFzJ1Woi7Fg"
+    "Fantasy Football Today": "UCviK78rIWXhZdFzJ1Woi7Fg",
+    "Establish The Run": "UC4TsBB8cvgXXqw8GzI3162A",
+    "Yahoo Fantasy Sports": "UCbPP6F-3QvBwGZR9OBQaM1g",
+    "PlayerProfiler": "UCfT0PM813c3F2B0PjP2V29A",
+    "Fantasy Headliners": "UCClRnPtjFEm7sMa0Nv02f2Q"
 }
 
 TARGET_KEYWORDS = [
     "waiver", "pickup", "add", "must", "stash", "buy", "rank",
-    "start", "sit", "sleeper", "target", "drop", "breakout", "wire"
+    "start", "sit", "sleeper", "target", "drop", "breakout", "wire",
+    "trade", "lineup", "rb", "wr", "qb", "te", "injury", "preview", "week"
 ]
 
 
 def fetch_weekly_2026_videos(current_week, target_year=2026):
-    cache_path = f"/tmp/yt_knowledge_{target_year}_week_{current_week}.json"
+    cache_path = f"/tmp/yt_knowledge_{target_year}_wk{current_week}_v2.json"
     saved_videos = {}
 
     if os.path.exists(cache_path):
@@ -41,16 +47,17 @@ def fetch_weekly_2026_videos(current_week, target_year=2026):
     now = datetime.now(timezone.utc)
     week_tag = f"week {current_week}"
 
-    for channel_name, channel_id in YT_CHANNELS.items():
+    def fetch_single_channel(item):
+        channel_name, channel_id = item
+        found = []
         try:
-            playlist_id = "UULF" + channel_id[2:]
-            url = f"https://www.youtube.com/feeds/videos.xml?playlist_id={playlist_id}"
+            url = f"https://www.youtube.com/feeds/videos.xml?channel_id={channel_id}"
             req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
-            with urllib.request.urlopen(req, timeout=2.0) as response:
+            with urllib.request.urlopen(req, timeout=2.5) as response:
                 xml_data = response.read()
 
             root = ET.fromstring(xml_data)
-            entries = root.findall('atom:entry', ns)[:10]
+            entries = root.findall('atom:entry', ns)[:15]
 
             for entry in entries:
                 vid_id = entry.find('yt:videoId', ns).text or ""
@@ -61,6 +68,7 @@ def fetch_weekly_2026_videos(current_week, target_year=2026):
                 title_lower = title.lower()
                 pub_str = entry.find('atom:published', ns).text or ""
 
+                # Strictly 2026 videos only; reject 2025
                 if not pub_str.startswith(str(target_year)) or "2025" in title_lower:
                     continue
 
@@ -71,29 +79,67 @@ def fetch_weekly_2026_videos(current_week, target_year=2026):
                 except Exception:
                     pass
 
+                # Reject if title explicitly mentions a different NFL week
                 mentions_other_week = any(
-                    f"week {w}" in title_lower for w in range(1, 19) if w != current_week
+                    f"week {w}" in title_lower and f"week {w}" != week_tag
+                    for w in range(1, 19)
                 )
                 if mentions_other_week:
                     continue
 
+                # Accept if it mentions the current week OR was uploaded within the last 6 days
                 is_current_week = (week_tag in title_lower) or (days_old <= 6)
-                is_fantasy_topic = any(k in title_lower for k in TARGET_KEYWORDS)
+                is_fantasy_topic = (days_old <= 5) or any(k in title_lower for k in TARGET_KEYWORDS)
 
                 if is_current_week and is_fantasy_topic:
                     desc_elem = entry.find('media:group/media:description', ns)
                     desc_text = (desc_elem.text if desc_elem is not None and desc_elem.text else "").lower()
                     combined_text = f"{title_lower} {desc_text}"
 
-                    saved_videos[vid_id] = {
+                    found.append({
                         "video_id": vid_id,
                         "channel": channel_name,
                         "title": title,
                         "published": pub_str[:10],
                         "text": combined_text
-                    }
+                    })
         except Exception:
-            continue
+            pass
+        return found
+
+    # 1. Fetch all 10 channel feeds in parallel (takes ~1.5 seconds total)
+    new_videos = []
+    with ThreadPoolExecutor(max_workers=10) as executor:
+        for ch_list in executor.map(fetch_single_channel, YT_CHANNELS.items()):
+            new_videos.extend(ch_list)
+
+    # 2. Fetch spoken transcripts in parallel for up to 12 new videos per load
+    try:
+        from youtube_transcript_api import YouTubeTranscriptApi
+        has_yt_lib = True
+    except Exception:
+        has_yt_lib = False
+
+    if has_yt_lib and new_videos:
+        def add_transcript(v):
+            try:
+                vid_id = v["video_id"]
+                if hasattr(YouTubeTranscriptApi, 'get_transcript'):
+                    t_list = YouTubeTranscriptApi.get_transcript(vid_id, languages=['en'])
+                    v["text"] += " " + " ".join([t['text'] for t in t_list]).lower()
+                else:
+                    ytt = YouTubeTranscriptApi()
+                    fetched = ytt.fetch(vid_id)
+                    v["text"] += " " + " ".join([s.text for s in fetched]).lower()
+            except Exception:
+                pass
+            return v
+
+        with ThreadPoolExecutor(max_workers=8) as executor:
+            list(executor.map(add_transcript, new_videos[:12]))
+
+    for v in new_videos:
+        saved_videos[v["video_id"]] = v
 
     try:
         with open(cache_path, "w") as f:
@@ -231,7 +277,7 @@ class handler(BaseHTTPRequestHandler):
                 })
 
             yt_videos = fetch_weekly_2026_videos(current_week=week, target_year=year)
-            free_agents = league.free_agents(week=week, size=75)
+            free_agents = league.free_agents(week=week, size=85)
             recommendations = []
 
             for pos in ['QB', 'RB', 'WR', 'TE']:
@@ -249,14 +295,16 @@ class handler(BaseHTTPRequestHandler):
 
                     espn_proj = get_proj(fa)
                     name_lower = fa.name.lower()
+                    clean_name = name_lower.replace(".", "").replace("'", "")
                     last_name = name_lower.split()[-1] if " " in name_lower else name_lower
 
                     mentioned_channels = set()
                     total_mentions = 0
                     for v in yt_videos:
-                        count = v["text"].count(name_lower)
-                        if count == 0 and len(last_name) > 4:
-                            count = v["text"].count(last_name)
+                        txt = v["text"].replace(".", "").replace("'", "")
+                        count = txt.count(clean_name)
+                        if count == 0 and len(last_name) >= 5:
+                            count = txt.count(last_name)
                         if count > 0:
                             mentioned_channels.add(v["channel"])
                             total_mentions += count
