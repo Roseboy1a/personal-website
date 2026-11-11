@@ -250,7 +250,7 @@
                 </div>
                 <p style="margin-bottom: 6px;">
                   <strong>ESPN Base Proj:</strong> ${rec.espn_proj} pts &nbsp;|&nbsp; 
-                  <strong>Target to Replace:</strong> ${rec.drop} (${rec.drop_proj} pts)
+                  <strong>Target to Replace:</strong> ${rec.drop} (${rec.drop_blended || rec.drop_proj} Blended / ${rec.drop_proj} ESPN)
                 </p>
                 <p>${ytBadge}</p>
                 ${dropdownHtml}
