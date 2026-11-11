@@ -99,9 +99,56 @@
           return;
         }
 
-        let html = `<p class="subtitle" style="margin-bottom: 16px;">
-          ${data.team} — Week ${data.week} | Scanned ${data.videos_scanned.length} Recent YouTube Waiver Videos
-        </p>`;
+        // Cumulative Weekly Memory in Browser LocalStorage (keyed strictly by 2026 + Week #)
+        const storageKey = `fantasy_knowledge_${data.year}_week_${data.week}`;
+        const savedMemory = JSON.parse(localStorage.getItem(storageKey) || '{"videos": {}, "playerMentions": {}}');
+
+        // Merge newly scanned 2026 videos into our permanent weekly memory
+        data.videos_scanned.forEach(v => {
+          savedMemory.videos[v.id] = v;
+        });
+
+        // Merge player YouTube mention history across all visits this week
+        data.recommendations.forEach(rec => {
+          const prev = savedMemory.playerMentions[rec.add] || { channels: [], mentions: 0 };
+          const mergedChannels = Array.from(new Set([...prev.channels, ...rec.yt_channels]));
+          const mergedMentions = Math.max(prev.mentions, rec.yt_mentions);
+          savedMemory.playerMentions[rec.add] = { channels: mergedChannels, mentions: mergedMentions };
+          rec.yt_channels = mergedChannels;
+          rec.yt_mentions = mergedMentions;
+        });
+
+        localStorage.setItem(storageKey, JSON.stringify(savedMemory));
+        const totalWeeklyVideos = Object.keys(savedMemory.videos).length;
+
+        // Determine color theme based on Playoff Odds
+        const pct = data.playoff_data.playoff_pct;
+        const badgeColor = pct < 35 ? '#ef4444' : (pct < 60 ? '#f59e0b' : '#4ade80');
+
+        let schedHtml = data.playoff_data.remaining_schedule.map(m =>
+          `Wk ${m.week}: vs ${m.opponent} (${m.opp_ppg} PPG)`
+        ).join(' &nbsp;•&nbsp; ');
+
+        let html = `
+          <div class="card" style="border-color: ${badgeColor}; margin-bottom: 20px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+              <h3 style="margin: 0; font-size: 1.2rem;">${data.team} (${data.playoff_data.current_record})</h3>
+              <span style="background: ${badgeColor}; color: #000; font-weight: bold; padding: 4px 10px; border-radius: 6px; font-size: 0.9rem;">
+                ${pct}% Playoff Odds — ${data.mode}
+              </span>
+            </div>
+            <p style="margin-bottom: 8px; color: #ccc;">
+              <strong>Projected Final Record:</strong> ${data.playoff_data.projected_record} &nbsp;|&nbsp;
+              <strong>Strategy:</strong> ${data.mode_desc}
+            </p>
+            <p style="font-size: 0.85rem; color: #888; margin-bottom: 6px;">
+              <strong>Upcoming Matchups:</strong> ${schedHtml || 'Playoffs Active'}
+            </p>
+            <p style="font-size: 0.8rem; color: #4ade80; margin: 0;">
+              ✓ Verified ${data.year} Season • Week ${data.week} Knowledge Vault: ${totalWeeklyVideos} Videos Retained This Week
+            </p>
+          </div>
+        `;
 
         if (data.recommendations.length === 0) {
           html += `<div class="card"><p>No immediate upgrades found right now.</p></div>`;
@@ -109,14 +156,17 @@
           data.recommendations.forEach(rec => {
             const ytBadge = rec.yt_channels.length > 0
               ? `<span style="color: #4ade80; font-size: 0.85rem;">🔥 Mentioned ${rec.yt_mentions}x on: ${rec.yt_channels.join(', ')}</span>`
-              : `<span style="color: #666; font-size: 0.85rem;">Pure ESPN Projection Pickup</span>`;
+              : `<span style="color: #888; font-size: 0.85rem;">📊 Pure Matchup / Projection Pickup</span>`;
 
             html += `
               <div class="card">
-                <h3>[${rec.pos}] Add ${rec.add} — Blended Score: ${rec.blended_score} pts (${rec.diff >= 0 ? '+' + rec.diff : rec.diff})</h3>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                  <h3 style="margin: 0;">[${rec.pos}] Add ${rec.add} — Blended Score: ${rec.blended_score} pts (${rec.diff >= 0 ? '+' + rec.diff : rec.diff})</h3>
+                  <span style="font-size: 0.8rem; color: #eab308;">${rec.tag}</span>
+                </div>
                 <p style="margin-bottom: 6px;">
-                  <strong>ESPN Proj:</strong> ${rec.espn_proj} pts &nbsp;|&nbsp; 
-                  <strong>Replaces:</strong> ${rec.drop} (${rec.drop_proj} pts)
+                  <strong>ESPN Base Proj:</strong> ${rec.espn_proj} pts &nbsp;|&nbsp; 
+                  <strong>Target to Replace:</strong> ${rec.drop} (${rec.drop_proj} pts)
                 </p>
                 <p>${ytBadge}</p>
               </div>`;
