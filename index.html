@@ -173,10 +173,9 @@
           });
         }
         container.innerHTML = html;
-      } catch (err) {
-        container.innerHTML = `<div class="card"><p>Could not load fantasy data.</p></div>`;
+     } catch (err) {
+        container.innerHTML = `<div class="card"><p>API Diagnostic: ${err.message} (Check /api/fantasy in your URL bar)</p></div>`;
       }
-    }
     loadFantasyData();
     setInterval(loadFantasyData, 900000);
   </script>
