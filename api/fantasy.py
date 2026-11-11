@@ -56,8 +56,26 @@ def parse_chapter_segments(desc_text):
     return segments
 
 
+from datetime import datetime, timezone, timedelta
+
+def get_current_fantasy_week_cutoff(now_utc):
+    """
+    Returns the exact timestamp of the most recent Tuesday at 04:00 UTC 
+    (right after Monday Night Football ends). Anything older is from LAST week!
+    """
+    # Python weekday(): Monday=0, Tuesday=1, Wednesday=2 ... Sunday=6
+    days_since_tuesday = (now_utc.weekday() - 1) % 7
+    most_recent_tuesday = now_utc - timedelta(days=days_since_tuesday)
+    cutoff = most_recent_tuesday.replace(hour=4, minute=0, second=0, microsecond=0)
+    # If it's currently Tuesday before 4 AM UTC (Monday night in US), go back a week
+    if cutoff > now_utc:
+        cutoff -= timedelta(days=7)
+    return cutoff
+
+
 def fetch_weekly_2026_videos(current_week, target_year=2026):
-    cache_path = f"/tmp/yt_knowledge_{target_year}_wk{current_week}_v3.json"
+    # Bumped to _v5 to wipe any pre-Sunday videos from the cloud cache
+    cache_path = f"/tmp/yt_knowledge_{target_year}_wk{current_week}_v5.json"
     saved_videos = {}
 
     if os.path.exists(cache_path):
@@ -74,6 +92,7 @@ def fetch_weekly_2026_videos(current_week, target_year=2026):
     }
 
     now = datetime.now(timezone.utc)
+    tuesday_cutoff = get_current_fantasy_week_cutoff(now)
     week_tag = f"week {current_week}"
 
     def fetch_single_channel(item):
@@ -97,32 +116,38 @@ def fetch_weekly_2026_videos(current_week, target_year=2026):
                 title_lower = title.lower()
                 pub_str = entry.find('atom:published', ns).text or ""
 
+                # 1. STRICT 2026 CHECK
                 if not pub_str.startswith(str(target_year)) or "2025" in title_lower:
                     continue
 
-                days_old = 99
+                # Parse exact upload timestamp
                 try:
                     pub_dt = datetime.fromisoformat(pub_str.replace('Z', '+00:00'))
-                    days_old = (now - pub_dt).days
                 except Exception:
-                    pass
+                    continue
 
+                # 2. REJECT ANY OTHER WEEK NUMBER IN TITLE (e.g., "Week 9")
                 mentions_other_week = any(
-                    f"week {w}" in title_lower and f"week {w}" != week_tag
-                    for w in range(1, 19)
+                    re.search(rf'\bweek\s+{w}\b', title_lower)
+                    for w in range(1, 19) if w != current_week
                 )
                 if mentions_other_week:
                     continue
 
-                is_current_week = (week_tag in title_lower) or (days_old <= 6)
-                is_fantasy_topic = (days_old <= 5) or any(k in title_lower for k in TARGET_KEYWORDS)
+                # 3. THE TUESDAY RESET RULE:
+                # Must be uploaded AFTER this week's Tuesday morning reset (post-MNF),
+                # OR explicitly state the current "Week X" in the title (for Monday waiver shows)
+                explicitly_this_week = bool(re.search(rf'\bweek\s+{current_week}\b', title_lower))
+                uploaded_after_mnf = (pub_dt >= tuesday_cutoff)
 
-                if is_current_week and is_fantasy_topic:
+                if not (uploaded_after_mnf or (explicitly_this_week and (now - pub_dt).days <= 3)):
+                    continue
+
+                is_fantasy_topic = any(k in title_lower for k in TARGET_KEYWORDS)
+                if is_fantasy_topic:
                     desc_elem = entry.find('media:group/media:description', ns)
                     raw_desc = desc_elem.text if desc_elem is not None and desc_elem.text else ""
                     combined_text = f"{title_lower} {raw_desc.lower()}"
-
-                    # Grab any MM:SS chapter timestamps from the description box immediately
                     chapter_segs = parse_chapter_segments(raw_desc)
 
                     found.append({
@@ -163,7 +188,6 @@ def fetch_weekly_2026_videos(current_week, target_year=2026):
 
                 if raw_chunks:
                     v["text"] += " " + " ".join([c["text"] for c in raw_chunks]).lower()
-                    # Group transcript lines into ~20-second blocks so quotes read naturally
                     grouped = []
                     curr_start = raw_chunks[0]["start"]
                     curr_words = []
