@@ -83,36 +83,66 @@
     <h3>Very little Experience</h3>
     <p>Use computer everyday and know how to use an AI, first time coding.</p>
   </div>
-<h2>Live ESPN Fantasy Assistant</h2>
+
+  <h2>Live ESPN Fantasy Assistant</h2>
   <div id="fantasy-dashboard">
-    <div class="card"><p>Loading live ESPN waiver wire upgrades...</p></div>
+    <div class="card"><p id="loading-status">Connecting to /api/fantasy...</p></div>
+  </div>
+
+  <div class="links">
+    <a href="mailto:your.email@example.com">Email Me</a>
+    <a href="https://linkedin.com" target="_blank">LinkedIn</a>
+    <a href="https://github.com" target="_blank">GitHub</a>
   </div>
 
   <script>
     async function loadFantasyData() {
       const container = document.getElementById('fantasy-dashboard');
+      const statusEl = document.getElementById('loading-status');
+
+      // 12-second timeout so it can never hang forever
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 12000);
+
       try {
-        const res = await fetch('/api/fantasy');
-        const data = await res.json();
-        if (data.error) {
-          container.innerHTML = `<div class="card"><p>Setup note: ${data.error}</p></div>`;
+        if (statusEl) statusEl.innerText = "Fetching live ESPN & 2026 YouTube data from /api/fantasy...";
+
+        const res = await fetch('/api/fantasy', { signal: controller.signal });
+        clearTimeout(timeoutId);
+
+        const rawText = await res.text();
+        let data;
+        try {
+          data = JSON.parse(rawText);
+        } catch (jsonErr) {
+          container.innerHTML = `<div class="card" style="border-color:#ef4444;">
+            <h3>Server Response Error (HTTP ${res.status})</h3>
+            <p>Vercel returned a non-JSON response. Make sure <code>api/fantasy.py</code> and <code>requirements.txt</code> are in your GitHub repo.</p>
+            <p style="font-size:0.8rem; margin-top:8px; color:#666;">Preview: ${rawText.substring(0, 180)}</p>
+          </div>`;
           return;
         }
 
-        // Cumulative Weekly Memory in Browser LocalStorage (keyed strictly by 2026 + Week #)
+        if (data.error) {
+          container.innerHTML = `<div class="card" style="border-color:#f59e0b;">
+            <h3>ESPN Setup Message</h3>
+            <p>${data.error}</p>
+          </div>`;
+          return;
+        }
+
+        // Cumulative Weekly Memory in Browser LocalStorage (2026 + Week #)
         const storageKey = `fantasy_knowledge_${data.year}_week_${data.week}`;
         const savedMemory = JSON.parse(localStorage.getItem(storageKey) || '{"videos": {}, "playerMentions": {}}');
 
-        // Merge newly scanned 2026 videos into our permanent weekly memory
-        data.videos_scanned.forEach(v => {
+        (data.videos_scanned || []).forEach(v => {
           savedMemory.videos[v.id] = v;
         });
 
-        // Merge player YouTube mention history across all visits this week
-        data.recommendations.forEach(rec => {
+        (data.recommendations || []).forEach(rec => {
           const prev = savedMemory.playerMentions[rec.add] || { channels: [], mentions: 0 };
-          const mergedChannels = Array.from(new Set([...prev.channels, ...rec.yt_channels]));
-          const mergedMentions = Math.max(prev.mentions, rec.yt_mentions);
+          const mergedChannels = Array.from(new Set([...prev.channels, ...(rec.yt_channels || [])]));
+          const mergedMentions = Math.max(prev.mentions, rec.yt_mentions || 0);
           savedMemory.playerMentions[rec.add] = { channels: mergedChannels, mentions: mergedMentions };
           rec.yt_channels = mergedChannels;
           rec.yt_mentions = mergedMentions;
@@ -121,17 +151,15 @@
         localStorage.setItem(storageKey, JSON.stringify(savedMemory));
         const totalWeeklyVideos = Object.keys(savedMemory.videos).length;
 
-        // Determine color theme based on Playoff Odds
-        const pct = data.playoff_data.playoff_pct;
+        const pct = data.playoff_data ? data.playoff_data.playoff_pct : 50;
         const badgeColor = pct < 35 ? '#ef4444' : (pct < 60 ? '#f59e0b' : '#4ade80');
 
-        let schedHtml = data.playoff_data.remaining_schedule.map(m =>
-          `Wk ${m.week}: vs ${m.opponent} (${m.opp_ppg} PPG)`
-        ).join(' &nbsp;•&nbsp; ');
+        const schedList = (data.playoff_data && data.playoff_data.remaining_schedule) ? data.playoff_data.remaining_schedule : [];
+        let schedHtml = schedList.map(m => `Wk ${m.week}: vs ${m.opponent} (${m.opp_ppg} PPG)`).join(' &nbsp;•&nbsp; ');
 
         let html = `
           <div class="card" style="border-color: ${badgeColor}; margin-bottom: 20px;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; flex-wrap: wrap; gap: 8px;">
               <h3 style="margin: 0; font-size: 1.2rem;">${data.team} (${data.playoff_data.current_record})</h3>
               <span style="background: ${badgeColor}; color: #000; font-weight: bold; padding: 4px 10px; border-radius: 6px; font-size: 0.9rem;">
                 ${pct}% Playoff Odds — ${data.mode}
@@ -150,17 +178,17 @@
           </div>
         `;
 
-        if (data.recommendations.length === 0) {
+        if (!data.recommendations || data.recommendations.length === 0) {
           html += `<div class="card"><p>No immediate upgrades found right now.</p></div>`;
         } else {
           data.recommendations.forEach(rec => {
-            const ytBadge = rec.yt_channels.length > 0
+            const ytBadge = (rec.yt_channels && rec.yt_channels.length > 0)
               ? `<span style="color: #4ade80; font-size: 0.85rem;">🔥 Mentioned ${rec.yt_mentions}x on: ${rec.yt_channels.join(', ')}</span>`
               : `<span style="color: #888; font-size: 0.85rem;">📊 Pure Matchup / Projection Pickup</span>`;
 
             html += `
               <div class="card">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; flex-wrap: wrap;">
                   <h3 style="margin: 0;">[${rec.pos}] Add ${rec.add} — Blended Score: ${rec.blended_score} pts (${rec.diff >= 0 ? '+' + rec.diff : rec.diff})</h3>
                   <span style="font-size: 0.8rem; color: #eab308;">${rec.tag}</span>
                 </div>
@@ -173,17 +201,18 @@
           });
         }
         container.innerHTML = html;
-     } catch (err) {
-        container.innerHTML = `<div class="card"><p>API Diagnostic: ${err.message} (Check /api/fantasy in your URL bar)</p></div>`;
+      } catch (err) {
+        clearTimeout(timeoutId);
+        container.innerHTML = `<div class="card" style="border-color:#ef4444;">
+          <h3>Connection Error</h3>
+          <p>${err.name === 'AbortError' ? 'Request timed out after 12 seconds.' : err.message}</p>
+        </div>`;
       }
+    }
+
     loadFantasyData();
     setInterval(loadFantasyData, 900000);
   </script>
-  <div class="links">
-    <a href="mailto:Cjrcolton@gmail.com">Email Me</a>
-    <a href="https://www.linkedin.com/in/colton-rosetta-1b13a8318/" target="_blank">LinkedIn</a>
-    <a href="https://github.com/Roseboy1a" target="_blank">GitHub</a>
-  </div>
 
 </body>
 </html>
