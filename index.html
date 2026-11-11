@@ -104,7 +104,7 @@
       const timeoutId = setTimeout(() => controller.abort(), 14000);
 
       try {
-        if (statusEl) statusEl.innerText = "Fetching live ESPN & 2026 YouTube timestamps from /api/fantasy...";
+        if (statusEl) statusEl.innerText = "Running 4-Factor Model (ESPN + 2026 YouTube + Sleeper Live Trends)...";
 
         const res = await fetch('/api/fantasy', { signal: controller.signal });
         clearTimeout(timeoutId);
@@ -129,8 +129,8 @@
           return;
         }
 
-        // Cumulative Weekly Memory in Browser LocalStorage (retains videos, mentions, and timestamp clips)
-        const storageKey = `fantasy_knowledge_${data.year}_week_${data.week}_v5`;
+        // Bumped to _v6 so browser uses the new 4-factor scoring & clean Tuesday cutoff
+        const storageKey = `fantasy_knowledge_${data.year}_week_${data.week}_v6`;
         const savedMemory = JSON.parse(localStorage.getItem(storageKey) || '{"videos": {}, "playerMentions": {}}');
 
         (data.videos_scanned || []).forEach(v => {
@@ -142,7 +142,6 @@
           const mergedChannels = Array.from(new Set([...prev.channels, ...(rec.yt_channels || [])]));
           const mergedMentions = Math.max(prev.mentions, rec.yt_mentions || 0);
 
-          // Merge & deduplicate timestamp clips by video_id + seconds
           const clipMap = {};
           [...(prev.clips || []), ...(rec.clips || [])].forEach(c => {
             clipMap[`${c.video_id}_${c.seconds}`] = c;
@@ -169,7 +168,6 @@
         const schedList = (data.playoff_data && data.playoff_data.remaining_schedule) ? data.playoff_data.remaining_schedule : [];
         let schedHtml = schedList.map(m => `Wk ${m.week}: vs ${m.opponent} (${m.opp_ppg} PPG)`).join(' &nbsp;•&nbsp; ');
 
-        // Dropdown for all scanned videos in the Weekly Knowledge Vault
         const allVideosList = Object.values(savedMemory.videos).map(v => `
           <div style="padding: 6px 0; border-bottom: 1px solid #222; font-size: 0.85rem;">
             <strong style="color: #eee;">${v.channel}:</strong> 
@@ -197,7 +195,7 @@
             </p>
             <details style="margin-top: 8px;">
               <summary style="cursor: pointer; font-size: 0.82rem; color: #4ade80; user-select: none;">
-                ✓ Verified ${data.year} Season • Week ${data.week} Knowledge Vault: ${totalWeeklyVideos} Videos Retained (Click to view videos)
+                ✓ Verified ${data.year} Season • Week ${data.week} Knowledge Vault: ${totalWeeklyVideos} Videos + Live Sleeper API (Click to view videos)
               </summary>
               <div style="margin-top: 8px; max-height: 220px; overflow-y: auto; padding: 8px 12px; background: #111; border-radius: 6px; border: 1px solid #262626;">
                 ${allVideosList || '<p style="font-size:0.8rem;">No videos cached yet.</p>'}
@@ -212,8 +210,12 @@
           data.recommendations.forEach(rec => {
             const hasMentions = rec.yt_channels && rec.yt_channels.length > 0;
             const ytBadge = hasMentions
-              ? `<span style="color: #4ade80; font-size: 0.85rem;">🔥 Mentioned ${rec.yt_mentions}x on: ${rec.yt_channels.join(', ')}</span>`
-              : `<span style="color: #888; font-size: 0.85rem;">📊 Pure Matchup / Projection Pickup</span>`;
+              ? `<span style="color: #4ade80; font-size: 0.84rem;">🔥 YT (${rec.sentiment || 'Positive'}): Mentioned ${rec.yt_mentions}x on ${rec.yt_channels.join(', ')} (+${rec.yt_bonus} pts)</span>`
+              : `<span style="color: #777; font-size: 0.84rem;">📊 No YT Mentions Yet (+0.0 pts)</span>`;
+
+            const sleeperBadge = rec.sleeper_rank
+              ? `<div style="margin-top: 4px;"><span style="color: #c084fc; font-size: 0.84rem;">📈 Sleeper Live Market: Trending #${rec.sleeper_rank} (+${(rec.sleeper_adds || 0).toLocaleString()} adds in 24h → +${rec.sleeper_bonus} pts)</span></div>`
+              : '';
 
             let dropdownHtml = '';
             if (rec.clips && rec.clips.length > 0) {
@@ -245,14 +247,16 @@
             html += `
               <div class="card">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; flex-wrap: wrap;">
-                  <h3 style="margin: 0;">[${rec.pos}] Add ${rec.add} — Blended Score: ${rec.blended_score} pts (${rec.diff >= 0 ? '+' + rec.diff : rec.diff})</h3>
+                  <h3 style="margin: 0;">[${rec.pos}] Add ${rec.add} — Blended: ${rec.blended_score} pts (${rec.diff >= 0 ? '+' + rec.diff : rec.diff})</h3>
                   <span style="font-size: 0.8rem; color: #eab308;">${rec.tag}</span>
                 </div>
-                <p style="margin-bottom: 6px;">
-                  <strong>ESPN Base Proj:</strong> ${rec.espn_proj} pts &nbsp;|&nbsp; 
-                  <strong>Target to Replace:</strong> ${rec.drop} (${rec.drop_blended || rec.drop_proj} Blended / ${rec.drop_proj} ESPN)
+                <p style="margin-bottom: 4px; font-size: 0.9rem;">
+                  <strong>True Base:</strong> ${rec.true_base} pts <span style="color:#777; font-size:0.82rem;">(ESPN Proj: ${rec.espn_proj} | Last 2 Wks: ${rec.recent_avg} avg)</span>
                 </p>
-                <p>${ytBadge}</p>
+                <p style="margin-bottom: 8px; font-size: 0.9rem;">
+                  <strong>Target to Replace:</strong> ${rec.drop} (${rec.drop_blended} Blended / ${rec.drop_proj} ESPN)
+                </p>
+                <div>${ytBadge}${sleeperBadge}</div>
                 ${dropdownHtml}
               </div>`;
           });
