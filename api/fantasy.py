@@ -3,6 +3,7 @@ from concurrent.futures import ThreadPoolExecutor
 import json
 import os
 import random
+import re
 import urllib.request
 import xml.etree.ElementTree as ET
 from datetime import datetime, timezone
@@ -27,8 +28,36 @@ TARGET_KEYWORDS = [
 ]
 
 
+def format_seconds(sec):
+    sec = max(0, int(sec))
+    m, s = divmod(sec, 60)
+    h, m = divmod(m, 60)
+    if h > 0:
+        return f"{h}:{m:02d}:{s:02d}"
+    return f"{m}:{s:02d}"
+
+
+def parse_chapter_segments(desc_text):
+    """Extracts MM:SS chapter lines from a YouTube video description."""
+    segments = []
+    if not desc_text:
+        return segments
+    for line in desc_text.splitlines():
+        match = re.search(r'(?:(\d{1,2}):)?(\d{1,2}):(\d{2})', line)
+        if match:
+            h = int(match.group(1) or 0)
+            m = int(match.group(2))
+            s = int(match.group(3))
+            total_sec = h * 3600 + m * 60 + s
+            segments.append({
+                "start": total_sec,
+                "text": line.strip()
+            })
+    return segments
+
+
 def fetch_weekly_2026_videos(current_week, target_year=2026):
-    cache_path = f"/tmp/yt_knowledge_{target_year}_wk{current_week}_v2.json"
+    cache_path = f"/tmp/yt_knowledge_{target_year}_wk{current_week}_v3.json"
     saved_videos = {}
 
     if os.path.exists(cache_path):
@@ -68,7 +97,6 @@ def fetch_weekly_2026_videos(current_week, target_year=2026):
                 title_lower = title.lower()
                 pub_str = entry.find('atom:published', ns).text or ""
 
-                # Strictly 2026 videos only; reject 2025
                 if not pub_str.startswith(str(target_year)) or "2025" in title_lower:
                     continue
 
@@ -79,7 +107,6 @@ def fetch_weekly_2026_videos(current_week, target_year=2026):
                 except Exception:
                     pass
 
-                # Reject if title explicitly mentions a different NFL week
                 mentions_other_week = any(
                     f"week {w}" in title_lower and f"week {w}" != week_tag
                     for w in range(1, 19)
@@ -87,33 +114,34 @@ def fetch_weekly_2026_videos(current_week, target_year=2026):
                 if mentions_other_week:
                     continue
 
-                # Accept if it mentions the current week OR was uploaded within the last 6 days
                 is_current_week = (week_tag in title_lower) or (days_old <= 6)
                 is_fantasy_topic = (days_old <= 5) or any(k in title_lower for k in TARGET_KEYWORDS)
 
                 if is_current_week and is_fantasy_topic:
                     desc_elem = entry.find('media:group/media:description', ns)
-                    desc_text = (desc_elem.text if desc_elem is not None and desc_elem.text else "").lower()
-                    combined_text = f"{title_lower} {desc_text}"
+                    raw_desc = desc_elem.text if desc_elem is not None and desc_elem.text else ""
+                    combined_text = f"{title_lower} {raw_desc.lower()}"
+
+                    # Grab any MM:SS chapter timestamps from the description box immediately
+                    chapter_segs = parse_chapter_segments(raw_desc)
 
                     found.append({
                         "video_id": vid_id,
                         "channel": channel_name,
                         "title": title,
                         "published": pub_str[:10],
-                        "text": combined_text
+                        "text": combined_text,
+                        "segments": chapter_segs
                     })
         except Exception:
             pass
         return found
 
-    # 1. Fetch all 10 channel feeds in parallel (takes ~1.5 seconds total)
     new_videos = []
     with ThreadPoolExecutor(max_workers=10) as executor:
         for ch_list in executor.map(fetch_single_channel, YT_CHANNELS.items()):
             new_videos.extend(ch_list)
 
-    # 2. Fetch spoken transcripts in parallel for up to 12 new videos per load
     try:
         from youtube_transcript_api import YouTubeTranscriptApi
         has_yt_lib = True
@@ -124,13 +152,30 @@ def fetch_weekly_2026_videos(current_week, target_year=2026):
         def add_transcript(v):
             try:
                 vid_id = v["video_id"]
+                raw_chunks = []
                 if hasattr(YouTubeTranscriptApi, 'get_transcript'):
                     t_list = YouTubeTranscriptApi.get_transcript(vid_id, languages=['en'])
-                    v["text"] += " " + " ".join([t['text'] for t in t_list]).lower()
+                    raw_chunks = [{"start": int(t.get('start', 0)), "text": t.get('text', '')} for t in t_list]
                 else:
                     ytt = YouTubeTranscriptApi()
                     fetched = ytt.fetch(vid_id)
-                    v["text"] += " " + " ".join([s.text for s in fetched]).lower()
+                    raw_chunks = [{"start": int(getattr(s, 'start', 0)), "text": getattr(s, 'text', '')} for s in fetched]
+
+                if raw_chunks:
+                    v["text"] += " " + " ".join([c["text"] for c in raw_chunks]).lower()
+                    # Group transcript lines into ~20-second blocks so quotes read naturally
+                    grouped = []
+                    curr_start = raw_chunks[0]["start"]
+                    curr_words = []
+                    for c in raw_chunks:
+                        curr_words.append(c["text"].replace("\n", " "))
+                        if c["start"] - curr_start >= 18:
+                            grouped.append({"start": curr_start, "text": " ".join(curr_words)})
+                            curr_start = c["start"]
+                            curr_words = []
+                    if curr_words:
+                        grouped.append({"start": curr_start, "text": " ".join(curr_words)})
+                    v["segments"].extend(grouped)
             except Exception:
                 pass
             return v
@@ -148,6 +193,61 @@ def fetch_weekly_2026_videos(current_week, target_year=2026):
         pass
 
     return list(saved_videos.values())
+
+
+def find_player_clips(player_name, yt_videos):
+    """Finds exact video timestamps and quote snippets where a player is mentioned."""
+    name_lower = player_name.lower()
+    clean_full = name_lower.replace(".", "").replace("'", "")
+    parts = clean_full.split()
+    last_name = parts[-1] if len(parts) > 1 else clean_full
+
+    mentioned_channels = set()
+    total_mentions = 0
+    clips = []
+
+    for v in yt_videos:
+        txt = v["text"].replace(".", "").replace("'", "")
+        count = txt.count(clean_full)
+        if count == 0 and len(last_name) >= 5:
+            count = txt.count(last_name)
+
+        if count > 0:
+            mentioned_channels.add(v["channel"])
+            total_mentions += count
+
+            matched_in_segments = False
+            for seg in v.get("segments", []):
+                seg_clean = seg["text"].lower().replace(".", "").replace("'", "")
+                if clean_full in seg_clean or (len(last_name) >= 5 and last_name in seg_clean):
+                    sec = max(0, int(seg["start"]) - 3)  # Rewind 3 seconds for context
+                    snippet = seg["text"].strip()
+                    if len(snippet) > 140:
+                        snippet = snippet[:137] + "..."
+                    clips.append({
+                        "video_id": v["video_id"],
+                        "channel": v["channel"],
+                        "title": v["title"],
+                        "seconds": sec,
+                        "timestamp": format_seconds(sec),
+                        "snippet": snippet
+                    })
+                    matched_in_segments = True
+                    if len([c for c in clips if c["video_id"] == v["video_id"]]) >= 2:
+                        break
+
+            # Fallback if mentioned in video title/description without a specific timestamp line
+            if not matched_in_segments:
+                clips.append({
+                    "video_id": v["video_id"],
+                    "channel": v["channel"],
+                    "title": v["title"],
+                    "seconds": 0,
+                    "timestamp": "0:00 (Featured)",
+                    "snippet": f"Featured in {v['channel']}: \"{v['title']}\""
+                })
+
+    return list(mentioned_channels), total_mentions, clips[:6]
 
 
 def calculate_playoff_odds(league, my_team, current_week):
@@ -294,20 +394,7 @@ class handler(BaseHTTPRequestHandler):
                         continue
 
                     espn_proj = get_proj(fa)
-                    name_lower = fa.name.lower()
-                    clean_name = name_lower.replace(".", "").replace("'", "")
-                    last_name = name_lower.split()[-1] if " " in name_lower else name_lower
-
-                    mentioned_channels = set()
-                    total_mentions = 0
-                    for v in yt_videos:
-                        txt = v["text"].replace(".", "").replace("'", "")
-                        count = txt.count(clean_name)
-                        if count == 0 and len(last_name) >= 5:
-                            count = txt.count(last_name)
-                        if count > 0:
-                            mentioned_channels.add(v["channel"])
-                            total_mentions += count
+                    mentioned_channels, total_mentions, clips = find_player_clips(fa.name, yt_videos)
 
                     if is_desperate:
                         yt_bonus = min(len(mentioned_channels) * 1.6 + (total_mentions * 0.35), 6.0)
@@ -333,7 +420,8 @@ class handler(BaseHTTPRequestHandler):
                             "espn_proj": espn_proj,
                             "blended_score": blended_score,
                             "yt_mentions": total_mentions,
-                            "yt_channels": list(mentioned_channels),
+                            "yt_channels": mentioned_channels,
+                            "clips": clips,
                             "drop": weakest["name"],
                             "drop_proj": weakest["proj"],
                             "diff": round(blended_score - weakest["proj"], 1)
