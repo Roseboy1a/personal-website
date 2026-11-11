@@ -195,57 +195,132 @@ def fetch_weekly_2026_videos(current_week, target_year=2026):
     return list(saved_videos.values())
 
 
+# Common NFL surnames & team city names that MUST NEVER match without the player's first name
+AMBIGUOUS_SURNAMES = {
+    # NFL Cities / Team Names
+    "washington", "dallas", "houston", "jacksonville", "CAROLINA", "miami",
+    "denver", "chicago", "detroit", "atlanta", "arizona", "seattle", "tampa",
+    "buffalo", "cleveland", "cincinnati", "pittsburgh", "baltimore", "indianapolis",
+    "tennessee", "minnesota", "philadelphia", "commanders", "steelers", "browns",
+    # Shared NFL Surnames
+    "wilson", "williams", "smith", "brown", "jones", "johnson", "taylor", "thomas",
+    "moore", "robinson", "allen", "hill", "cook", "hall", "walker", "mitchell",
+    "white", "green", "adams", "carter", "davis", "jackson", "miller", "young",
+    "anderson", "scott", "wright", "king", "baker", "nelson", "harris", "clark",
+    "lewis", "lee", "rodriguez", "martinez", "hernandez", "lopez", "gonzalez",
+    "perez", "sanchez", "ramirez", "torres", "flores", "rivera", "gomez", "diaz",
+    "turner", "parker", "collins", "edwards", "stewart", "morris", "murphy",
+    "rogers", "reed", "bell", "cooper", "richardson", "cox", "howard", "ward",
+    "watson", "brooks", "wood", "james", "bennett", "gray", "mendoza", "hughes",
+    "price", "MYERS", "long", "foster", "sanders", "ross", "morales", "powell",
+    "sullivan", "russell", "ortiz", "jenkins", "gutierrez", "perry", "butler",
+    "barnes", "fisher", "henderson", "coleman", "simmons", "patterson", "jordan",
+    "reynolds", "hamilton", "graham", "kim", "gonzales", "alexander", "ramos",
+    "wallace", "griffin", "west", "cole", "hayes", "chavez", "gibson", "bryant",
+    "ellis", "stevens", "murray", "ford", "marshall", "owens", "mcdonald", "harrison",
+    "ruiz", "kennedy", "wells", "alvarez", "woods", "ireland", "hunt", "palmer",
+    "robertson", "boyd", "rose", "stone", "mason", "warren", "dixon", "burns",
+    "gordon", "shaw", "holmes", "rice", "schmidt", "hunt", "black", "daniels",
+    "palmer", "mills", "nichols", "grant", "knight", "ferguson", "rose", "hopkins",
+    "jacobs", "pittman", "higbee", "stafford", "murray", "henry", "barkley",
+    "elliott", "conner", "chubb", "mixon", "kamara", "montgomery", "gibbs",
+    "stroud", "love", "purdy", "GOFF", "mayfield", "lawrence", "herbert", "burrow",
+    "mahomes", "hurts", "prescott", "cousins", "rodgers", "carr", "geno", "ridley",
+    "sutton", "pickens", "higgins", "waddle", "olave", "london", "metcalf", "lockett",
+    "evans", "godwin", "diggs", "dell", "collins", "cooper", "jeudy", "hopkins",
+    "kelce", "andrews", "kittle", "laporta", "mcbride", "kincaid", "engram", "ferguson",
+    "njoku", "goedert", "pitts", "hockenson", "freiermuth", "kraft", "musgrave",
+    "brooks", "benson", "corum", "wright", "lloyd", "davis", "vidal", "ali", "estime",
+    "allen", "tracy", "irving", "guerendo", "steele", "vaki", "shipley", "laube",
+    "worthy", "pearsall", "legette", "coleman", "mcconkey", "polk", "burton", "wilson",
+    "mcmillan", "rice", "baker", "franklin", "corley", "washington", "thrash", "means"
+}
+
+
+def clean_player_name(name):
+    """Normalizes a player's name and strips Jr./Sr./II/III suffixes."""
+    cleaned = name.lower().replace(".", "").replace("'", "").replace("-", " ").strip()
+    parts = [p for p in cleaned.split() if p not in ("jr", "sr", "ii", "iii", "iv", "v")]
+    return " ".join(parts), parts
+
+
 def find_player_clips(player_name, yt_videos):
-    """Finds exact video timestamps and quote snippets where a player is mentioned."""
-    name_lower = player_name.lower()
-    clean_full = name_lower.replace(".", "").replace("'", "")
-    parts = clean_full.split()
-    last_name = parts[-1] if len(parts) > 1 else clean_full
+    """Strictly matches full player names (First + Last) to eliminate surname/city collisions."""
+    clean_full, parts = clean_player_name(player_name)
+    if len(parts) < 2:
+        return [], 0, []
+
+    first_name = parts[0]
+    last_name = parts[-1]
+
+    # Regex requiring exact whole-word match for "First Last" (allows 1-2 spaces between)
+    full_name_pattern = re.compile(r'\b' + re.escape(first_name) + r'\s+' + re.escape(last_name) + r'\b')
+
+    # Only allow standalone last-name matching if the surname is rare (8+ letters and not in AMBIGUOUS_SURNAMES)
+    # AND the full name was already explicitly confirmed in that exact same video
+    is_unique_surname = (len(last_name) >= 8) and (last_name.lower() not in {s.lower() for s in AMBIGUOUS_SURNAMES})
+    surname_pattern = re.compile(r'\b' + re.escape(last_name) + r'\b')
+    # Rejects if preceded by a different capitalized/spoken first name
+    other_first_Plus_surname = re.compile(r'\b([a-z]{3,})\s+' + re.escape(last_name) + r'\b')
 
     mentioned_channels = set()
     total_mentions = 0
     clips = []
 
     for v in yt_videos:
-        txt = v["text"].replace(".", "").replace("'", "")
-        count = txt.count(clean_full)
-        if count == 0 and len(last_name) >= 5:
-            count = txt.count(last_name)
+        txt = v["text"].lower().replace(".", "").replace("'", "").replace("-", " ")
 
-        if count > 0:
-            mentioned_channels.add(v["channel"])
-            total_mentions += count
+        # STEP 1: The video MUST contain the player's exact FULL NAME ("malik washington") at least once
+        full_matches = full_name_pattern.findall(txt)
+        if not full_matches:
+            continue
 
-            matched_in_segments = False
-            for seg in v.get("segments", []):
-                seg_clean = seg["text"].lower().replace(".", "").replace("'", "")
-                if clean_full in seg_clean or (len(last_name) >= 5 and last_name in seg_clean):
-                    sec = max(0, int(seg["start"]) - 3)  # Rewind 3 seconds for context
-                    snippet = seg["text"].strip()
-                    if len(snippet) > 140:
-                        snippet = snippet[:137] + "..."
-                    clips.append({
-                        "video_id": v["video_id"],
-                        "channel": v["channel"],
-                        "title": v["title"],
-                        "seconds": sec,
-                        "timestamp": format_seconds(sec),
-                        "snippet": snippet
-                    })
-                    matched_in_segments = True
-                    if len([c for c in clips if c["video_id"] == v["video_id"]]) >= 2:
-                        break
+        count = len(full_matches)
+        mentioned_channels.add(v["channel"])
+        total_mentions += count
 
-            # Fallback if mentioned in video title/description without a specific timestamp line
-            if not matched_in_segments:
+        matched_in_segments = False
+        for seg in v.get("segments", []):
+            seg_clean = seg["text"].lower().replace(".", "").replace("'", "").replace("-", " ")
+
+            # Check for exact "First Last" in this 20-second segment
+            has_full = bool(full_name_pattern.search(seg_clean))
+
+            # Optional secondary check: if rare surname AND full name was already confirmed in this video,
+            # ensure nobody else's first name is attached to that surname in this segment
+            has_safe_surname = False
+            if not has_full and is_unique_surname and surname_pattern.search(seg_clean):
+                preceding_matches = other_first_Plus_surname.findall(seg_clean)
+                # Only valid if no other first name precedes the surname
+                if all(w == first_name or w in ("the", "and", "for", "with", "from", "like", "over", "start", "add", "drop") for w in preceding_matches):
+                    has_safe_surname = True
+
+            if has_full or has_safe_surname:
+                sec = max(0, int(seg["start"]) - 3)
+                snippet = seg["text"].strip()
+                if len(snippet) > 140:
+                    snippet = snippet[:137] + "..."
                 clips.append({
                     "video_id": v["video_id"],
                     "channel": v["channel"],
                     "title": v["title"],
-                    "seconds": 0,
-                    "timestamp": "0:00 (Featured)",
-                    "snippet": f"Featured in {v['channel']}: \"{v['title']}\""
+                    "seconds": sec,
+                    "timestamp": format_seconds(sec),
+                    "snippet": snippet
                 })
+                matched_in_segments = True
+                if len([c for c in clips if c["video_id"] == v["video_id"]]) >= 2:
+                    break
+
+        if not matched_in_segments:
+            clips.append({
+                "video_id": v["video_id"],
+                "channel": v["channel"],
+                "title": v["title"],
+                "seconds": 0,
+                "timestamp": "0:00 (Featured)",
+                "snippet": f"Confirmed full-name mention of {player_name} in {v['channel']}"
+            })
 
     return list(mentioned_channels), total_mentions, clips[:6]
 
