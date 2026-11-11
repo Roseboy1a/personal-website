@@ -465,17 +465,34 @@ class handler(BaseHTTPRequestHandler):
 
             is_desperate = playoff_pct < 45.0
 
+            # 1. Fetch YouTube videos FIRST so both your roster and free agents get scored identically
+            yt_videos = fetch_weekly_2026_videos(current_week=week, target_year=year)
+
+            def calc_yt_bonus(channels_count, mentions_count):
+                if is_desperate:
+                    return min(channels_count * 1.6 + (mentions_count * 0.35), 6.0)
+                return min(channels_count * 0.8 + (mentions_count * 0.15), 2.5)
+
+            # 2. Score your own roster using the exact same Blended Score formula
             roster = []
             for p in my_team.roster:
+                espn_proj = get_proj(p)
+                r_channels, r_mentions, r_clips = find_player_clips(p.name, yt_videos)
+                r_bonus = calc_yt_bonus(len(r_channels), r_mentions)
+                r_blended = round(espn_proj + r_bonus, 1)
+
                 roster.append({
                     "name": p.name,
                     "pos": p.position,
                     "slot": p.lineupSlot,
-                    "proj": get_proj(p),
+                    "proj": espn_proj,
+                    "blended_score": r_blended,
+                    "yt_mentions": r_mentions,
+                    "yt_channels": r_channels,
                     "status": p.injuryStatus
                 })
 
-            yt_videos = fetch_weekly_2026_videos(current_week=week, target_year=year)
+            # 3. Score Free Agents and compare Blended Score vs. Blended Score
             free_agents = league.free_agents(week=week, size=85)
             recommendations = []
 
@@ -485,7 +502,8 @@ class handler(BaseHTTPRequestHandler):
                     continue
 
                 starters = [p for p in my_pos if p["slot"] not in ['BE', 'IR']]
-                weakest = min(starters if (is_desperate and starters) else my_pos, key=lambda x: x["proj"])
+                # Find weakest rostered player by BLENDED score (not just raw ESPN proj)
+                weakest = min(starters if (is_desperate and starters) else my_pos, key=lambda x: x["blended_score"])
 
                 scored_fas = []
                 for fa in free_agents:
@@ -494,16 +512,11 @@ class handler(BaseHTTPRequestHandler):
 
                     espn_proj = get_proj(fa)
                     mentioned_channels, total_mentions, clips = find_player_clips(fa.name, yt_videos)
-
-                    if is_desperate:
-                        yt_bonus = min(len(mentioned_channels) * 1.6 + (total_mentions * 0.35), 6.0)
-                    else:
-                        yt_bonus = min(len(mentioned_channels) * 0.8 + (total_mentions * 0.15), 2.5)
-
+                    yt_bonus = calc_yt_bonus(len(mentioned_channels), total_mentions)
                     blended_score = round(espn_proj + yt_bonus, 1)
 
-                    qualifies = (blended_score > weakest["proj"]) or (is_desperate and len(mentioned_channels) >= 1)
-                    if qualifies:
+                    # Only recommend if the free agent's Blended Score beats your player's Blended Score
+                    if blended_score > weakest["blended_score"]:
                         tag = "Safe Floor Upgrade"
                         if is_desperate and len(mentioned_channels) >= 2:
                             tag = "🚨 High-Ceiling Breakout Swing"
@@ -523,7 +536,8 @@ class handler(BaseHTTPRequestHandler):
                             "clips": clips,
                             "drop": weakest["name"],
                             "drop_proj": weakest["proj"],
-                            "diff": round(blended_score - weakest["proj"], 1)
+                            "drop_blended": weakest["blended_score"],
+                            "diff": round(blended_score - weakest["blended_score"], 1)
                         })
 
                 scored_fas.sort(key=lambda x: x["blended_score"], reverse=True)
@@ -545,7 +559,8 @@ class handler(BaseHTTPRequestHandler):
                     {"id": v["video_id"], "channel": v["channel"], "title": v["title"], "date": v["published"]}
                     for v in yt_videos
                 ],
-                "recommendations": recommendations
+                "recommendations": recommendations,
+                "roster": roster
             }).encode('utf-8'))
 
         except Exception as e:
