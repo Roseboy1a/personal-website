@@ -130,7 +130,7 @@
         }
 
         // Cumulative Weekly Memory in Browser LocalStorage (retains videos, mentions, and timestamp clips)
-        const storageKey = `fantasy_knowledge_${data.year}_week_${data.week}_v4`;
+        const storageKey = `fantasy_knowledge_${data.year}_week_${data.week}_v5`;
         const savedMemory = JSON.parse(localStorage.getItem(storageKey) || '{"videos": {}, "playerMentions": {}}');
 
         (data.videos_scanned || []).forEach(v => {
