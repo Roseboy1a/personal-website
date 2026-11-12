@@ -657,6 +657,56 @@ class handler(BaseHTTPRequestHandler):
 
             my_team = next((t for t in league.teams if team_name.lower() in t.team_name.lower()), league.teams[0])
 
+            # --- BUILD LIVE WEEK X NFL SCHEDULE MAP SO ROSTER PLAYERS NEVER FALSELY SHOW 'BYE' ---
+            free_agents = league.free_agents(week=week, size=100)
+            nfl_opp_map = {}
+
+            def register_nfl_matchup(pro_team, pro_opp):
+                pt = normalize_team_abbrev(pro_team)
+                po = normalize_team_abbrev(pro_opp)
+                if pt and po and po != "BYE" and pt in NFL_DEFENSE_MATRIX and po in NFL_DEFENSE_MATRIX:
+                    nfl_opp_map[pt] = po
+                    nfl_opp_map[po] = pt
+
+            for fa in free_agents:
+                register_nfl_matchup(getattr(fa, 'proTeam', ''), getattr(fa, 'pro_opponent', ''))
+
+            # Also scan weekly box_scores to capture all rostered players' opponents
+            box_player_opp = {}
+            try:
+                for box in league.box_scores(week=week):
+                    for bp in (box.home_lineup + box.away_lineup):
+                        opp_str = normalize_team_abbrev(getattr(bp, 'pro_opponent', ''))
+                        if opp_str:
+                            box_player_opp[bp.name] = opp_str
+                            register_nfl_matchup(getattr(bp, 'proTeam', ''), opp_str)
+            except Exception:
+                pass
+
+            def resolve_player_opponent(player):
+                # 1. Direct pro_opponent attribute
+                opp = normalize_team_abbrev(getattr(player, 'pro_opponent', ''))
+                if opp and opp != "BYE" and opp in NFL_DEFENSE_MATRIX:
+                    return opp
+                # 2. From weekly box_scores lineup
+                if player.name in box_player_opp:
+                    b_opp = box_player_opp[player.name]
+                    if b_opp and b_opp != "BYE" and b_opp in NFL_DEFENSE_MATRIX:
+                        return b_opp
+                # 3. From player.schedule dictionary
+                sched = getattr(player, 'schedule', {})
+                if isinstance(sched, dict):
+                    w_sched = sched.get(week) or sched.get(str(week))
+                    if isinstance(w_sched, dict):
+                        s_opp = normalize_team_abbrev(w_sched.get('team', ''))
+                        if s_opp and s_opp in NFL_DEFENSE_MATRIX:
+                            return s_opp
+                # 4. From our live NFL team matchup map (using the player's NFL proTeam)
+                pro_team = normalize_team_abbrev(getattr(player, 'proTeam', ''))
+                if pro_team in nfl_opp_map:
+                    return nfl_opp_map[pro_team]
+                return "BYE"
+
             def get_true_baseline(player):
                 curr_stats = player.stats.get(week, {})
                 espn_proj = float(curr_stats.get('projected_points', player.projected_total_points / 17))
@@ -696,14 +746,15 @@ class handler(BaseHTTPRequestHandler):
             yt_videos = fetch_weekly_2026_videos(current_week=week, target_year=year)
 
             def score_player_full(player):
+                # Inject resolved opponent so analyze_micro_matchup always has the real NFL opponent
+                player.pro_opponent = resolve_player_opponent(player)
+
                 espn_proj, recent_avg, true_base = get_true_baseline(player)
 
-                # 1. Deep Defensive Scheme & Micro-Matchup Analysis (-4.0 to +5.0 pts)
                 scheme_adj, matchup_grade, matchup_report = analyze_micro_matchup(
                     player, player.position, espn_proj, recent_avg, is_desperate
                 )
 
-                # 2. Sentiment-Adjusted YouTube Analyst Bonus
                 channels, mentions, clips, sent_mult, sent_label = find_player_clips(player.name, yt_videos)
                 if is_desperate:
                     raw_yt = len(channels) * 1.6 + (mentions * 0.35)
@@ -728,7 +779,7 @@ class handler(BaseHTTPRequestHandler):
                     "clips": clips
                 }
 
-            # Score your own roster with the exact same 3-Pillar Scheme Model
+            # Score your own roster with resolved NFL opponents
             roster = []
             for p in my_team.roster:
                 sc = score_player_full(p)
@@ -747,7 +798,6 @@ class handler(BaseHTTPRequestHandler):
                     "status": p.injuryStatus
                 })
 
-            free_agents = league.free_agents(week=week, size=85)
             recommendations = []
 
             for pos in ['QB', 'RB', 'WR', 'TE']:
@@ -755,11 +805,14 @@ class handler(BaseHTTPRequestHandler):
                 if not my_pos:
                     continue
 
-                starters = [p for p in my_pos if p["slot"] not in ['BE', 'IR']]
-                weakest = min(starters if (is_desperate and starters) else my_pos, key=lambda x: x["blended_score"])
+                # Filter out players actually on an NFL BYE (0.0 projected points) when picking a starter to compare against
+                active_starters = [p for p in my_pos if p["slot"] not in ['BE', 'IR'] and p["proj"] > 0]
+                active_any = [p for p in my_pos if p["proj"] > 0]
+                pool_to_compare = active_starters if (is_desperate and active_starters) else (active_any or my_pos)
+                weakest = min(pool_to_compare, key=lambda x: x["blended_score"])
 
                 scored_fas = []
-                for fa in free_agents:
+                for fa in free_agents[:85]:
                     if fa.position != pos:
                         continue
 
