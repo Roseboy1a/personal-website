@@ -27,17 +27,34 @@ TARGET_KEYWORDS = [
     "trade", "lineup", "rb", "wr", "qb", "te", "injury", "preview", "week"
 ]
 
-POSITIVE_WORDS = {
-    "add", "pickup", "pick up", "buy", "must", "start", "smash", "breakout",
-    "upside", "league winner", "love", "target", "volume", "stash", "priority",
-    "steal", "fire", "boom", "starter", "number one", "wr1", "rb1", "workhorse"
+# Phrase weights for Context-Window Sentiment Analysis
+BULLISH_PHRASES = {
+    "must add": 1.5, "league winner": 1.5, "priority add": 1.4, "priority pickup": 1.4,
+    "number one waiver": 1.5, "top waiver": 1.3, "smash start": 1.4, "must start": 1.3,
+    "breakout": 1.1, "workhorse": 1.2, "bellcow": 1.2, "every down back": 1.2,
+    "target hog": 1.1, "alpha": 1.0, "steal": 0.9, "love him": 1.0, "love this matchup": 1.1,
+    "smash play": 1.3, "smash spot": 1.2, "fire him up": 1.2, "starting with confidence": 1.2,
+    "high ceiling": 0.9, "huge upside": 1.0, "upside": 0.6, "stash": 0.6, "pickup": 0.6,
+    "pick up": 0.6, "waiver add": 0.8, "buy low": 0.8, "flex play": 0.6, "great matchup": 0.9,
+    "juicy matchup": 1.0, "volume": 0.5, "snap share": 0.5, "route participation": 0.6,
+    "red zone role": 0.7, "goal line": 0.6, "clear starter": 0.9, "wr1": 0.8, "rb1": 0.8,
+    "wr2": 0.5, "rb2": 0.5, "streaming option": 0.6, "top streamer": 0.8
 }
 
-NEGATIVE_WORDS = {
-    "drop", "avoid", "sit", "bench", "injured", "injury", "out", "bust",
-    "terrible", "awful", "worry", "panic", "fade", "stay away", "trap",
-    "concerning", "downgrade", "cutting", "cut", "sell"
+BEARISH_PHRASES = {
+    "do not start": -1.6, "dont start": -1.6, "do not add": -1.6, "dont add": -1.6,
+    "stay away": -1.5, "easy drop": -1.6, "safe drop": -1.5, "drop him": -1.5,
+    "dropping": -1.2, "bench him": -1.4, "must sit": -1.5, "sit him": -1.3,
+    "fade": -1.1, "avoid": -1.2, "bust": -1.3, "trap": -1.2, "fool's gold": -1.4,
+    "fools gold": -1.4, "touchdown dependent": -1.0, "td dependent": -1.0,
+    "low floor": -0.9, "terrible matchup": -1.2, "brutal matchup": -1.2,
+    "tough matchup": -0.8, "shadow coverage": -0.8, "injured": -1.2, "out this week": -1.8,
+    "doubtful": -1.5, "hamstring": -0.8, "ankle": -0.7, "concussion": -1.2,
+    "ir": -1.5, "committee": -0.6, "split backfield": -0.7, "losing snaps": -1.2,
+    "benched": -1.5, "cannot trust": -1.3, "cant trust": -1.3, "panic": -0.9, "worry": -0.7
 }
+
+NEGATION_WORDS = {"not", "dont", "don't", "never", "no", "cant", "can't", "wouldnt", "wouldn't", "avoid", "stop"}
 
 AMBIGUOUS_SURNAMES = {
     "washington", "dallas", "houston", "jacksonville", "carolina", "miami",
@@ -75,9 +92,6 @@ AMBIGUOUS_SURNAMES = {
     "legette", "mcconkey", "polk", "burton", "mcmillan", "franklin", "corley", "thrash", "means"
 }
 
-# ==============================================================================
-# 32-TEAM NFL DEFENSIVE SCHEME, PERSONNEL & TRENCH MATCHUP MATRIX
-# ==============================================================================
 NFL_DEFENSE_MATRIX = {
     "ARI": {"man": 24, "zone": 76, "base": 22, "nickel": 64, "dime": 14, "shell": "Cover 3 / Quarters", "dline_run_stop": 89, "pass_rush": 90, "blitz": 27, "perim_cb": 88, "slot_cov": 90, "lb_mismatch_rate": 24, "key_defender": "Budda Baker (Box/Slot S)"},
     "ATL": {"man": 22, "zone": 78, "base": 24, "nickel": 65, "dime": 11, "shell": "Cover 3 / Cover 4", "dline_run_stop": 94, "pass_rush": 87, "blitz": 23, "perim_cb": 99, "slot_cov": 91, "lb_mismatch_rate": 26, "key_defender": "A.J. Terrell (Perim CB)"},
@@ -156,11 +170,6 @@ def normalize_team_abbrev(raw_opp):
 
 
 def analyze_micro_matchup(player, pos, espn_proj, recent_avg, is_desperate=False):
-    """
-    Deep NFL Scheme & Micro-Matchup Engine (Expanded Weight: -4.0 to +5.0 pts).
-    Evaluates Man/Zone coverage shells, Base/Nickel/Dime sub-packages,
-    WR vs CB/LB alignments, and RB vs D-Line trench stuff rates.
-    """
     raw_opp = getattr(player, 'pro_opponent', '') or ''
     opp = normalize_team_abbrev(raw_opp)
 
@@ -188,14 +197,12 @@ def analyze_micro_matchup(player, pos, espn_proj, recent_avg, is_desperate=False
         is_slot = (clean_n in SLOT_HEAVY_WRS) or (espn_proj < 11.2 and recent_avg >= espn_proj)
         alignment = "Slot / Motion Alignment" if is_slot else "Perimeter (X/Z) Alignment"
 
-        # 1. Coverage Shell Fit (Man vs Zone)
         if is_slot:
             cov_edge = ((zone_pct - 70) * 0.065) + ((d["blitz"] - 27) * 0.05)
         else:
             cov_edge = ((man_pct - 30) * 0.045) if d["perim_cb"] < 102 else -((man_pct - 30) * 0.045)
         adj += cov_edge
 
-        # 2. Specific CB vs WR Battle & Shadow Check
         if not is_slot:
             cb_diff = 100 - d["perim_cb"]
             cb_pts = cb_diff * 0.13
@@ -216,7 +223,6 @@ def analyze_micro_matchup(player, pos, espn_proj, recent_avg, is_desperate=False
             else:
                 battle = f"Slot WR vs {opp} Nickel Package (Slot Coverage Rating: {d['slot_cov']})"
 
-        # 3. Nickel / Base Linebacker Coverage Mismatch Check
         if d["lb_mismatch_rate"] >= 24 and (is_slot or nickel_pct >= 62):
             lb_boost = round((d["lb_mismatch_rate"] - 19) * 0.15, 1)
             adj += lb_boost
@@ -233,7 +239,6 @@ def analyze_micro_matchup(player, pos, espn_proj, recent_avg, is_desperate=False
     elif pos == "RB":
         is_receiving_back = (clean_n in PASS_CATCHING_RBS) or (recent_avg > espn_proj + 1.5)
 
-        # 1. Trench Battle: RB vs D-Line Run Stuff Rate
         trench_diff = 100 - d["dline_run_stop"]
         trench_pts = trench_diff * 0.15
         adj += trench_pts
@@ -245,7 +250,6 @@ def analyze_micro_matchup(player, pos, espn_proj, recent_avg, is_desperate=False
         else:
             battle = f"RB vs {opp} Defensive Front (Run Stop Rating: {d['dline_run_stop']} | Key: {d['key_defender']})"
 
-        # 2. Personnel Grouping (Light Boxes in Nickel/Dime vs Heavy Base Boxes)
         sub_pkg_pct = nickel_pct + dime_pct
         if sub_pkg_pct >= 77:
             adj += 1.3
@@ -270,14 +274,13 @@ def analyze_micro_matchup(player, pos, espn_proj, recent_avg, is_desperate=False
             f"in {d['shell']} ({zone_pct}% Zone / {man_pct}% Man)."
         )
 
-    else:  # QB
+    else:
         rush_diff = (100 - d["pass_rush"]) * 0.12
         sec_diff = (100 - ((d["perim_cb"] + d["slot_cov"]) / 2)) * 0.11
         adj += (rush_diff + sec_diff)
         battle = f"QB vs {opp} Pass Rush (Pressure Rating: {d['pass_rush']}, Blitz: {d['blitz']}%)"
         trench_lb_note = f"Coverage Shell Read: {opp} runs {d['shell']} ({zone_pct}% Zone / {man_pct}% Man)."
 
-    # In Desperation Mode, amplify positive schematic mismatches by 20% to hunt ceiling plays
     if is_desperate and adj > 0:
         adj *= 1.20
 
@@ -336,7 +339,7 @@ def get_current_fantasy_week_cutoff(now_utc):
 
 
 def fetch_weekly_2026_videos(current_week, target_year=2026):
-    cache_path = f"/tmp/yt_knowledge_{target_year}_wk{current_week}_v8.json"
+    cache_path = f"/tmp/yt_knowledge_{target_year}_wk{current_week}_v9.json"
     saved_videos = {}
 
     if os.path.exists(cache_path):
@@ -473,10 +476,71 @@ def fetch_weekly_2026_videos(current_week, target_year=2026):
     return list(saved_videos.values())
 
 
-def find_player_clips(player_name, yt_videos):
+def score_segment_context(seg_text, video_title=""):
+    """
+    Analyzes the exact spoken context around a player's mention.
+    Returns (net_sentiment_score, verdict_tag, matched_signals_list).
+    A plain name-drop with no positive/negative signals scores 0.0.
+    """
+    clean_s = seg_text.lower().replace(".", "").replace("'", "").replace("-", " ")
+    words = clean_s.split()
+    score = 0.0
+    signals = []
+
+    # 1. Check multi-word and single-word Bearish signals first
+    for phrase, weight in BEARISH_PHRASES.items():
+        if phrase in clean_s:
+            score += weight
+            signals.append(f"-{phrase}")
+
+    # 2. Check Bullish signals, verifying they aren't negated ("don't start", "not a pickup")
+    for phrase, weight in BULLISH_PHRASES.items():
+        idx = clean_s.find(phrase)
+        if idx != -1:
+            # Check the 3 words immediately preceding the bullish phrase for negation
+            prefix_words = clean_s[:idx].split()[-3:]
+            if any(nw in prefix_words for nw in NEGATION_WORDS):
+                score -= weight
+                signals.append(f"-not {phrase}")
+            else:
+                score += weight
+                signals.append(f"+{phrase}")
+
+    # 3. If the segment itself is a brief chapter timestamp or neutral sentence,
+    # check the video title for overarching context (e.g., "Must Add Waiver Targets" vs "Players to Drop")
+    title_low = video_title.lower()
+    if score == 0.0:
+        if any(w in title_low for w in ("drop", "bust", "sit", "avoid", "panic", "sell")):
+            score -= 0.6
+            signals.append("-video topic: sit/drop")
+        elif any(w in title_low for w in ("waiver", "add", "pickup", "buy", "breakout", "start", "sleeper")):
+            score += 0.35
+            signals.append("+video topic: waiver/start")
+
+    score = round(max(-2.5, min(2.5, score)), 2)
+    if score >= 0.5:
+        verdict = f"🟢 Bullish Praise (+{score})"
+    elif score > 0.0:
+        verdict = f"🟢 Mild Endorsement (+{score})"
+    elif score <= -0.5:
+        verdict = f"🔴 Bearish Warning ({score})"
+    elif score < 0.0:
+        verdict = f"🔴 Caution ({score})"
+    else:
+        verdict = "⚪ Neutral Name-Drop (+0.0)"
+
+    return score, verdict, signals[:4]
+
+
+def find_player_clips(player_name, yt_videos, is_desperate=False):
+    """
+    Finds full-name player mentions and computes YT points STRICTLY from how well
+    the analysts talk about the player in that exact segment.
+    Neutral name-drops earn 0.0 pts. Bearish segments subtract points.
+    """
     clean_full, parts = clean_player_name(player_name)
     if len(parts) < 2:
-        return [], 0, [], 1.0, "Neutral"
+        return [], 0, [], 0.0, "No Mentions"
 
     first_name = parts[0]
     last_name = parts[-1]
@@ -487,10 +551,11 @@ def find_player_clips(player_name, yt_videos):
     other_first_plus_surname = re.compile(r'\b([a-z]{3,})\s+' + re.escape(last_name) + r'\b')
 
     mentioned_channels = set()
+    bullish_channels = set()
+    bearish_channels = set()
     total_mentions = 0
     clips = []
-    pos_hits = 0
-    neg_hits = 0
+    cumulative_sentiment_pts = 0.0
 
     for v in yt_videos:
         txt = v["text"].lower().replace(".", "").replace("'", "").replace("-", " ")
@@ -498,12 +563,11 @@ def find_player_clips(player_name, yt_videos):
         if not full_matches:
             continue
 
-        count = len(full_matches)
         mentioned_channels.add(v["channel"])
-        total_mentions += count
+        total_mentions += len(full_matches)
 
-        matched_in_segments = False
-        for seg in v.get("segments", []):
+        segments = v.get("segments", [])
+        for idx, seg in enumerate(segments):
             seg_clean = seg["text"].lower().replace(".", "").replace("'", "").replace("-", " ")
             has_full = bool(full_name_pattern.search(seg_clean))
 
@@ -514,50 +578,60 @@ def find_player_clips(player_name, yt_videos):
                     has_safe_surname = True
 
             if has_full or has_safe_surname:
-                for pw in POSITIVE_WORDS:
-                    if pw in seg_clean:
-                        pos_hits += 1
-                for nw in NEGATIVE_WORDS:
-                    if nw in seg_clean:
-                        neg_hits += 1
+                # Combine current 18s segment with the next 18s segment (~36 seconds of spoken context after their name)
+                context_window = seg["text"]
+                if idx + 1 < len(segments):
+                    context_window += " " + segments[idx + 1]["text"]
+
+                seg_score, verdict, signals = score_segment_context(context_window, v["title"])
+                cumulative_sentiment_pts += seg_score
+
+                if seg_score >= 0.3:
+                    bullish_channels.add(v["channel"])
+                elif seg_score <= -0.3:
+                    bearish_channels.add(v["channel"])
 
                 sec = max(0, int(seg["start"]) - 3)
-                snippet = seg["text"].strip()
-                if len(snippet) > 140:
-                    snippet = snippet[:137] + "..."
+                snippet = context_window.strip()
+                if len(snippet) > 165:
+                    snippet = snippet[:162] + "..."
+
                 clips.append({
                     "video_id": v["video_id"],
                     "channel": v["channel"],
                     "title": v["title"],
                     "seconds": sec,
                     "timestamp": format_seconds(sec),
-                    "snippet": snippet
+                    "snippet": snippet,
+                    "verdict": verdict,
+                    "signals": ", ".join(signals) if signals else "plain mention"
                 })
-                matched_in_segments = True
                 if len([c for c in clips if c["video_id"] == v["video_id"]]) >= 2:
                     break
 
-        if not matched_in_segments:
-            clips.append({
-                "video_id": v["video_id"],
-                "channel": v["channel"],
-                "title": v["title"],
-                "seconds": 0,
-                "timestamp": "0:00 (Featured)",
-                "snippet": f"Confirmed full-name mention of {player_name} in {v['channel']}"
-            })
+    # Add multi-channel consensus bonus ONLY for channels that actually praised the player
+    consensus_boost = len(bullish_channels) * (0.75 if is_desperate else 0.45)
+    consensus_penalty = len(bearish_channels) * 0.65
 
-    if neg_hits > pos_hits + 1:
-        sentiment_mult = 0.25
-        sentiment_label = "⚠️ Caution/Negative"
-    elif pos_hits >= neg_hits + 2:
-        sentiment_mult = 1.25
-        sentiment_label = "Bullish Buy"
+    raw_yt_bonus = cumulative_sentiment_pts + consensus_boost - consensus_penalty
+    if is_desperate and raw_yt_bonus > 0:
+        raw_yt_bonus *= 1.25
+
+    max_cap = 5.5 if is_desperate else 3.0
+    yt_bonus = round(max(-3.0, min(max_cap, raw_yt_bonus)), 1)
+
+    if yt_bonus >= 1.5:
+        sentiment_label = f"🟢 Strong Analyst Endorsement ({len(bullish_channels)} Bullish Ch)"
+    elif yt_bonus >= 0.4:
+        sentiment_label = f"🟢 Positive Film Consensus"
+    elif yt_bonus <= -0.5:
+        sentiment_label = f"🔴 Analyst Sit/Drop Warning ({len(bearish_channels)} Bearish Ch)"
+    elif total_mentions > 0:
+        sentiment_label = "⚪ Neutral Name-Drop Only (0.0 Bonus)"
     else:
-        sentiment_mult = 1.0
-        sentiment_label = "Positive"
+        sentiment_label = "No Mentions"
 
-    return list(mentioned_channels), total_mentions, clips[:6], sentiment_mult, sentiment_label
+    return list(mentioned_channels), total_mentions, clips[:6], yt_bonus, sentiment_label
 
 
 def calculate_playoff_odds(league, my_team, current_week):
@@ -657,7 +731,6 @@ class handler(BaseHTTPRequestHandler):
 
             my_team = next((t for t in league.teams if team_name.lower() in t.team_name.lower()), league.teams[0])
 
-            # --- BUILD LIVE WEEK X NFL SCHEDULE MAP SO ROSTER PLAYERS NEVER FALSELY SHOW 'BYE' ---
             free_agents = league.free_agents(week=week, size=100)
             nfl_opp_map = {}
 
@@ -671,7 +744,6 @@ class handler(BaseHTTPRequestHandler):
             for fa in free_agents:
                 register_nfl_matchup(getattr(fa, 'proTeam', ''), getattr(fa, 'pro_opponent', ''))
 
-            # Also scan weekly box_scores to capture all rostered players' opponents
             box_player_opp = {}
             try:
                 for box in league.box_scores(week=week):
@@ -684,16 +756,13 @@ class handler(BaseHTTPRequestHandler):
                 pass
 
             def resolve_player_opponent(player):
-                # 1. Direct pro_opponent attribute
                 opp = normalize_team_abbrev(getattr(player, 'pro_opponent', ''))
                 if opp and opp != "BYE" and opp in NFL_DEFENSE_MATRIX:
                     return opp
-                # 2. From weekly box_scores lineup
                 if player.name in box_player_opp:
                     b_opp = box_player_opp[player.name]
                     if b_opp and b_opp != "BYE" and b_opp in NFL_DEFENSE_MATRIX:
                         return b_opp
-                # 3. From player.schedule dictionary
                 sched = getattr(player, 'schedule', {})
                 if isinstance(sched, dict):
                     w_sched = sched.get(week) or sched.get(str(week))
@@ -701,7 +770,6 @@ class handler(BaseHTTPRequestHandler):
                         s_opp = normalize_team_abbrev(w_sched.get('team', ''))
                         if s_opp and s_opp in NFL_DEFENSE_MATRIX:
                             return s_opp
-                # 4. From our live NFL team matchup map (using the player's NFL proTeam)
                 pro_team = normalize_team_abbrev(getattr(player, 'proTeam', ''))
                 if pro_team in nfl_opp_map:
                     return nfl_opp_map[pro_team]
@@ -733,10 +801,10 @@ class handler(BaseHTTPRequestHandler):
 
             if playoff_pct < 35.0:
                 mode = "DESPERATION MODE"
-                mode_desc = "Playoff odds are critical (<35%). Exploiting Nickel/LB coverage mismatches, D-Line trench edges, and film-backed YouTube breakouts."
+                mode_desc = "Playoff odds are critical (<35%). Exploiting Nickel/LB coverage mismatches, D-Line trench edges, and verified bullish analyst breakouts."
             elif playoff_pct < 60.0:
                 mode = "AGGRESSIVE PUSH"
-                mode_desc = "Playoff race is tight. Blending scheme-specific coverage/trench edges with weekly usage and analyst film study."
+                mode_desc = "Playoff race is tight. Blending scheme-specific coverage/trench edges with weekly usage and verified positive film study."
             else:
                 mode = "CONTENDER MODE"
                 mode_desc = "Strong playoff position. Prioritizing high-floor scheme fits and blocking league rivals."
@@ -746,22 +814,17 @@ class handler(BaseHTTPRequestHandler):
             yt_videos = fetch_weekly_2026_videos(current_week=week, target_year=year)
 
             def score_player_full(player):
-                # Inject resolved opponent so analyze_micro_matchup always has the real NFL opponent
                 player.pro_opponent = resolve_player_opponent(player)
-
                 espn_proj, recent_avg, true_base = get_true_baseline(player)
 
                 scheme_adj, matchup_grade, matchup_report = analyze_micro_matchup(
                     player, player.position, espn_proj, recent_avg, is_desperate
                 )
 
-                channels, mentions, clips, sent_mult, sent_label = find_player_clips(player.name, yt_videos)
-                if is_desperate:
-                    raw_yt = len(channels) * 1.6 + (mentions * 0.35)
-                    yt_bonus = round(min(raw_yt * sent_mult, 6.0), 1)
-                else:
-                    raw_yt = len(channels) * 0.8 + (mentions * 0.15)
-                    yt_bonus = round(min(raw_yt * sent_mult, 2.5), 1)
+                # Context-Window Sentiment Scoring: only awards YT points when spoken context is genuinely positive
+                channels, mentions, clips, yt_bonus, sent_label = find_player_clips(
+                    player.name, yt_videos, is_desperate
+                )
 
                 blended_score = round(true_base + scheme_adj + yt_bonus, 1)
                 return {
@@ -779,7 +842,6 @@ class handler(BaseHTTPRequestHandler):
                     "clips": clips
                 }
 
-            # Score your own roster with resolved NFL opponents
             roster = []
             for p in my_team.roster:
                 sc = score_player_full(p)
@@ -792,6 +854,8 @@ class handler(BaseHTTPRequestHandler):
                     "scheme_adj": sc["scheme_adj"],
                     "matchup_grade": sc["matchup_grade"],
                     "matchup_report": sc["matchup_report"],
+                    "yt_bonus": sc["yt_bonus"],
+                    "sentiment": sc["sentiment"],
                     "blended_score": sc["blended_score"],
                     "yt_mentions": sc["yt_mentions"],
                     "yt_channels": sc["yt_channels"],
@@ -805,7 +869,6 @@ class handler(BaseHTTPRequestHandler):
                 if not my_pos:
                     continue
 
-                # Filter out players actually on an NFL BYE (0.0 projected points) when picking a starter to compare against
                 active_starters = [p for p in my_pos if p["slot"] not in ['BE', 'IR'] and p["proj"] > 0]
                 active_any = [p for p in my_pos if p["proj"] > 0]
                 pool_to_compare = active_starters if (is_desperate and active_starters) else (active_any or my_pos)
@@ -820,14 +883,12 @@ class handler(BaseHTTPRequestHandler):
 
                     if sc["blended_score"] > weakest["blended_score"]:
                         tag = "Scheme & Floor Upgrade"
-                        if sc["scheme_adj"] >= 1.5 and len(sc["yt_channels"]) >= 1:
-                            tag = "🎯 Elite Scheme + Analyst Smash"
+                        if sc["scheme_adj"] >= 1.5 and sc["yt_bonus"] >= 1.0:
+                            tag = "🎯 Elite Scheme + Bullish Film Smash"
                         elif sc["scheme_adj"] >= 1.5:
                             tag = "🛡️ Defensive Scheme Mismatch"
-                        elif is_desperate and len(sc["yt_channels"]) >= 2:
-                            tag = "🚨 High-Ceiling Breakout Swing"
-                        elif len(sc["yt_channels"]) >= 2:
-                            tag = "🔥 Consensus Waiver Target"
+                        elif sc["yt_bonus"] >= 1.8:
+                            tag = "🔥 Verified Bullish Analyst Target"
 
                         scored_fas.append({
                             "pos": pos,
