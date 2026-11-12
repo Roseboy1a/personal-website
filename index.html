@@ -104,7 +104,7 @@
       const timeoutId = setTimeout(() => controller.abort(), 14000);
 
       try {
-        if (statusEl) statusEl.innerText = "Running Deep NFL Scheme & Micro-Matchup Engine (Man/Zone %, Nickel/LB Mismatches, Trench EPA & YT Film)...";
+        if (statusEl) statusEl.innerText = "Running Deep NFL Scheme & Live Defensive Injury Engine...";
 
         const res = await fetch('/api/fantasy', { signal: controller.signal });
         clearTimeout(timeoutId);
@@ -129,7 +129,7 @@
           return;
         }
 
-        const storageKey = `fantasy_knowledge_${data.year}_week_${data.week}_v9`;
+        const storageKey = `fantasy_knowledge_${data.year}_week_${data.week}_v10`;
         const savedMemory = JSON.parse(localStorage.getItem(storageKey) || '{"videos": {}, "playerMentions": {}}');
 
         (data.videos_scanned || []).forEach(v => {
@@ -194,7 +194,7 @@
             </p>
             <details style="margin-top: 8px;">
               <summary style="cursor: pointer; font-size: 0.82rem; color: #4ade80; user-select: none;">
-                ✓ Verified ${data.year} Season • Week ${data.week} Knowledge Vault: ${totalWeeklyVideos} Videos + 32-Team NFL Scheme Matrix
+                ✓ Verified ${data.year} Season • Week ${data.week} Knowledge Vault: ${totalWeeklyVideos} Videos + Live 24/7 Injury-Adjusted Defense Matrix
               </summary>
               <div style="margin-top: 8px; max-height: 220px; overflow-y: auto; padding: 8px 12px; background: #111; border-radius: 6px; border: 1px solid #262626;">
                 ${allVideosList || '<p style="font-size:0.8rem;">No videos cached yet.</p>'}
@@ -208,8 +208,9 @@
         } else {
           data.recommendations.forEach(rec => {
             const hasMentions = rec.yt_channels && rec.yt_channels.length > 0;
+            const ytSign = rec.yt_bonus >= 0 ? `+${rec.yt_bonus}` : `${rec.yt_bonus}`;
             const ytBadge = hasMentions
-              ? `<span style="color: #4ade80; font-size: 0.84rem;">🔥 YT (${rec.sentiment || 'Positive'}): Mentioned ${rec.yt_mentions}x on ${rec.yt_channels.join(', ')} (+${rec.yt_bonus} pts)</span>`
+              ? `<span style="color: #4ade80; font-size: 0.84rem;">🔥 YT (${rec.sentiment || 'Analyzed'}): Mentioned ${rec.yt_mentions}x on ${rec.yt_channels.join(', ')} (${ytSign} pts)</span>`
               : `<span style="color: #777; font-size: 0.84rem;">📊 Pure Scheme & Usage Edge (+0.0 YT pts)</span>`;
 
             const mr = rec.matchup_report || {};
@@ -221,7 +222,7 @@
             const schemeDropdown = `
               <details style="margin-top: 10px; background: #111111; border: 1px solid #262626; border-radius: 6px; padding: 8px 12px;">
                 <summary style="cursor: pointer; font-size: 0.85rem; color: ${schemeColor}; font-weight: 500; user-select: none;">
-                  🛡️ Micro-Matchup vs ${mr.opponent || 'OPP'}: ${rec.matchup_grade || 'Neutral'} (${schemeSign} Scheme Pts) — Click for Coverages & Personnel
+                  🛡️ Micro-Matchup vs ${mr.opponent || 'OPP'}: ${rec.matchup_grade || 'Neutral'} (${schemeSign} Scheme Pts) — Click for Coverages, Personnel & Injuries
                 </summary>
                 <div style="margin-top: 8px; font-size: 0.82rem; color: #ccc; line-height: 1.5;">
                   <div style="padding-bottom: 8px; margin-bottom: 8px; border-bottom: 1px solid #262626;">
@@ -229,28 +230,15 @@
                     • <strong>Coverage Shell Split:</strong> ${mr.coverage_shell || 'N/A'}<br>
                     • <strong>Sub-Package Personnel:</strong> ${mr.personnel_split || 'N/A'}<br>
                     • <strong>1-on-1 Assignment:</strong> ${mr.individual_battle || 'N/A'}<br>
-                    • <strong>Nickel / LB / Trench Note:</strong> <span style="color:#93c5fd;">${mr.trench_or_lb_note || 'N/A'}</span>
-                    <div style="padding-bottom: 8px; margin-bottom: 8px; border-bottom: 1px solid #262626;">
-                    <strong style="color:#fff;">ADD: ${rec.add} vs ${mr.opponent || 'OPP'} (${schemeSign} pts)</strong><br>
-                    • <strong>Coverage Shell Split:</strong> ${mr.coverage_shell || 'N/A'}<br>
-                    • <strong>Sub-Package Personnel:</strong> ${mr.personnel_split || 'N/A'}<br>
-                    • <strong>1-on-1 Assignment:</strong> ${mr.individual_battle || 'N/A'}<br>
                     • <strong>Nickel / LB / Trench Note:</strong> <span style="color:#93c5fd;">${mr.trench_or_lb_note || 'N/A'}</span><br>
-                    • <strong>Live Opponent DEF Injuries:</strong> <span style="color:#fca5a5;">${mr.injury_impact || 'Scanning...'}</span>
+                    • <strong>Live Opponent DEF Injuries:</strong> <span style="color:#fca5a5;">${mr.injury_impact || 'None listed'}</span>
                   </div>
                   <div>
                     <strong style="color:#aaa;">COMPARED TO ROSTERED: ${rec.drop} vs ${dr.opponent || 'OPP'} (${dropSchemeSign} pts)</strong><br>
                     • <strong>Opponent Shell & Personnel:</strong> ${dr.coverage_shell || 'N/A'} | ${dr.personnel_split || 'N/A'}<br>
                     • <strong>Assignment:</strong> ${dr.individual_battle || 'N/A'}<br>
                     • <strong>Scheme Note:</strong> ${dr.trench_or_lb_note || 'N/A'}<br>
-                    • <strong>Live Opponent DEF Injuries:</strong> <span style="color:#fca5a5;">${dr.injury_impact || 'Scanning...'}</span>
-                  </div>
-                  </div>
-                  <div>
-                    <strong style="color:#aaa;">COMPARED TO ROSTERED: ${rec.drop} vs ${dr.opponent || 'OPP'} (${dropSchemeSign} pts)</strong><br>
-                    • <strong>Opponent Shell & Personnel:</strong> ${dr.coverage_shell || 'N/A'} | ${dr.personnel_split || 'N/A'}<br>
-                    • <strong>Assignment:</strong> ${dr.individual_battle || 'N/A'}<br>
-                    • <strong>Scheme Note:</strong> ${dr.trench_or_lb_note || 'N/A'}
+                    • <strong>Live Opponent DEF Injuries:</strong> <span style="color:#fca5a5;">${dr.injury_impact || 'None listed'}</span>
                   </div>
                 </div>
               </details>
@@ -294,7 +282,7 @@
                 </div>
                 <p style="margin-bottom: 4px; font-size: 0.88rem;">
                   <strong>Formula:</strong> ${rec.true_base} True Base <span style="color:#777;">(ESPN ${rec.espn_proj} / L2W ${rec.recent_avg})</span> 
-                  ${schemeSign} Scheme + ${rec.yt_bonus} YT
+                  ${schemeSign} Scheme ${ytSign} YT
                 </p>
                 <p style="margin-bottom: 8px; font-size: 0.88rem;">
                   <strong>Target to Replace:</strong> ${rec.drop} vs ${dr.opponent || 'OPP'} (${rec.drop_blended} Blended / ${rec.drop_proj} ESPN / ${dropSchemeSign} Scheme)
@@ -314,10 +302,11 @@
               <div style="padding: 10px 0; border-bottom: 1px solid #222; font-size: 0.83rem;">
                 <div style="display:flex; justify-content:space-between; color:#fff; font-weight:bold; margin-bottom:3px;">
                   <span>[${r.pos} - ${r.slot}] ${r.name} vs ${rm.opponent || 'BYE'}</span>
-                  <span style="color:#4ade80;">Blended: ${r.blended_score} pts (Base ${r.true_base} | Scheme ${sSign})</span>
+                  <span style="color:#4ade80;">Blended: ${r.blended_score} pts (Base ${r.true_base} | Scheme ${sSign} | YT ${r.yt_bonus >= 0 ? '+' + r.yt_bonus : r.yt_bonus})</span>
                 </div>
                 <div style="color:#aaa;">• <strong>Scheme & Personnel:</strong> ${rm.coverage_shell || 'N/A'} | ${rm.personnel_split || 'N/A'}</div>
                 <div style="color:#aaa;">• <strong>Matchup Note:</strong> ${rm.individual_battle || 'N/A'} — <span style="color:#93c5fd;">${rm.trench_or_lb_note || ''}</span></div>
+                <div style="color:#fca5a5;">• <strong>Opponent DEF Injuries:</strong> ${rm.injury_impact || 'None listed'}</div>
               </div>
             `;
           }).join('');
