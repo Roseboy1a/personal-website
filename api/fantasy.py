@@ -92,40 +92,133 @@ AMBIGUOUS_SURNAMES = {
     "legette", "mcconkey", "polk", "burton", "mcmillan", "franklin", "corley", "thrash", "means"
 }
 
-NFL_DEFENSE_MATRIX = {
-    "ARI": {"man": 24, "zone": 76, "base": 22, "nickel": 64, "dime": 14, "shell": "Cover 3 / Quarters", "dline_run_stop": 89, "pass_rush": 90, "blitz": 27, "perim_cb": 88, "slot_cov": 90, "lb_mismatch_rate": 24, "key_defender": "Budda Baker (Box/Slot S)"},
-    "ATL": {"man": 22, "zone": 78, "base": 24, "nickel": 65, "dime": 11, "shell": "Cover 3 / Cover 4", "dline_run_stop": 94, "pass_rush": 87, "blitz": 23, "perim_cb": 99, "slot_cov": 91, "lb_mismatch_rate": 26, "key_defender": "A.J. Terrell (Perim CB)"},
-    "BAL": {"man": 31, "zone": 69, "base": 26, "nickel": 58, "dime": 16, "shell": "Split-Safety / Disguised Zone", "dline_run_stop": 114, "pass_rush": 109, "blitz": 30, "perim_cb": 103, "slot_cov": 108, "lb_mismatch_rate": 14, "key_defender": "Kyle Hamilton (Slot/Apex) & Roquan Smith"},
-    "BUF": {"man": 21, "zone": 79, "base": 12, "nickel": 76, "dime": 12, "shell": "Nickel Cover 2 / Cover 4", "dline_run_stop": 95, "pass_rush": 104, "blitz": 24, "perim_cb": 104, "slot_cov": 106, "lb_mismatch_rate": 16, "key_defender": "Taron Johnson (Elite Nickel CB)"},
-    "CAR": {"man": 26, "zone": 74, "base": 28, "nickel": 60, "dime": 12, "shell": "3-4 Cover 3 / Quarters", "dline_run_stop": 86, "pass_rush": 86, "blitz": 29, "perim_cb": 92, "slot_cov": 87, "lb_mismatch_rate": 29, "key_defender": "Jaycee Horn (Perim CB)"},
-    "CHI": {"man": 25, "zone": 75, "base": 23, "nickel": 67, "dime": 10, "shell": "4-3 Cover 2 / Tampa 2", "dline_run_stop": 98, "pass_rush": 99, "blitz": 22, "perim_cb": 111, "slot_cov": 105, "lb_mismatch_rate": 18, "key_defender": "Jaylon Johnson (Shadow CB) & Kyler Gordon"},
-    "CIN": {"man": 30, "zone": 70, "base": 22, "nickel": 66, "dime": 12, "shell": "Cover 3 / Man-Match", "dline_run_stop": 91, "pass_rush": 97, "blitz": 26, "perim_cb": 93, "slot_cov": 89, "lb_mismatch_rate": 25, "key_defender": "Trey Hendrickson (Edge Rush)"},
-    "CLE": {"man": 44, "zone": 56, "base": 20, "nickel": 64, "dime": 16, "shell": "Aggressive Press Cover 1 Man", "dline_run_stop": 107, "pass_rush": 113, "blitz": 33, "perim_cb": 109, "slot_cov": 98, "lb_mismatch_rate": 19, "key_defender": "Myles Garrett (Edge) & Denzel Ward (Man CB)"},
-    "DAL": {"man": 36, "zone": 64, "base": 24, "nickel": 61, "dime": 15, "shell": "Cover 1 / Cover 3 Press", "dline_run_stop": 88, "pass_rush": 107, "blitz": 31, "perim_cb": 101, "slot_cov": 92, "lb_mismatch_rate": 24, "key_defender": "Interior D-Line (Vulnerable vs Inside Run)"},
-    "DEN": {"man": 42, "zone": 58, "base": 25, "nickel": 60, "dime": 15, "shell": "Heavy Blitz Cover 1 / Cover 3", "dline_run_stop": 104, "pass_rush": 110, "blitz": 39, "perim_cb": 116, "slot_cov": 101, "lb_mismatch_rate": 21, "key_defender": "Pat Surtain II (Elite Shadow CB1)"},
-    "DET": {"man": 41, "zone": 59, "base": 29, "nickel": 59, "dime": 12, "shell": "Base/Nickel Press Man Cover 1", "dline_run_stop": 115, "pass_rush": 105, "blitz": 34, "perim_cb": 95, "slot_cov": 94, "lb_mismatch_rate": 27, "key_defender": "Elite Run Wall (Funnels teams to Slot/Pass)"},
-    "GB": {"man": 27, "zone": 73, "base": 25, "nickel": 63, "dime": 12, "shell": "4-3 Single-High Cover 3", "dline_run_stop": 99, "pass_rush": 102, "blitz": 25, "perim_cb": 101, "slot_cov": 95, "lb_mismatch_rate": 23, "key_defender": "Xavier McKinney (Centerfield Safety)"},
-    "HOU": {"man": 32, "zone": 68, "base": 24, "nickel": 65, "dime": 11, "shell": "4-3 Quarters / Cover 3 Press", "dline_run_stop": 106, "pass_rush": 111, "blitz": 24, "perim_cb": 110, "slot_cov": 96, "lb_mismatch_rate": 22, "key_defender": "Derek Stingley Jr. (Perim CB) & Will Anderson"},
-    "IND": {"man": 19, "zone": 81, "base": 23, "nickel": 68, "dime": 9, "shell": "Static Cover 3 Zone", "dline_run_stop": 93, "pass_rush": 96, "blitz": 20, "perim_cb": 90, "slot_cov": 94, "lb_mismatch_rate": 26, "key_defender": "Kenny Moore II (Slot CB)"},
-    "JAX": {"man": 38, "zone": 62, "base": 27, "nickel": 61, "dime": 12, "shell": "Press Man Cover 1", "dline_run_stop": 96, "pass_rush": 95, "blitz": 29, "perim_cb": 91, "slot_cov": 88, "lb_mismatch_rate": 28, "key_defender": "Vulnerable Secondary vs Motion/Slot"},
-    "KC": {"man": 39, "zone": 61, "base": 22, "nickel": 62, "dime": 16, "shell": "Spagnuolo Disguised Blitz / Man", "dline_run_stop": 111, "pass_rush": 108, "blitz": 37, "perim_cb": 112, "slot_cov": 106, "lb_mismatch_rate": 19, "key_defender": "Trent McDuffie (CB1) & Chris Jones (Interior DL)"},
-    "LAC": {"man": 23, "zone": 77, "base": 21, "nickel": 63, "dime": 16, "shell": "Minter Two-High Quarters / Zone", "dline_run_stop": 103, "pass_rush": 103, "blitz": 25, "perim_cb": 98, "slot_cov": 102, "lb_mismatch_rate": 17, "key_defender": "Derwin James (Hybrid Box/Slot Defender)"},
-    "LAR": {"man": 24, "zone": 76, "base": 25, "nickel": 61, "dime": 14, "shell": "Cover 3 / Quarters Zone", "dline_run_stop": 95, "pass_rush": 104, "blitz": 26, "perim_cb": 89, "slot_cov": 88, "lb_mismatch_rate": 27, "key_defender": "Jared Verse (Edge) / Vulnerable Secondary"},
-    "LV": {"man": 28, "zone": 72, "base": 26, "nickel": 62, "dime": 12, "shell": "Cover 3 / Cover 1 Mix", "dline_run_stop": 96, "pass_rush": 103, "blitz": 27, "perim_cb": 92, "slot_cov": 94, "lb_mismatch_rate": 24, "key_defender": "Maxx Crosby (Edge Rush)"},
-    "MIA": {"man": 29, "zone": 71, "base": 23, "nickel": 63, "dime": 14, "shell": "Split-Safety Cover 4 / Cover 3", "dline_run_stop": 97, "pass_rush": 98, "blitz": 28, "perim_cb": 102, "slot_cov": 97, "lb_mismatch_rate": 21, "key_defender": "Jalen Ramsey (Perim/Apex CB)"},
-    "MIN": {"man": 18, "zone": 82, "base": 19, "nickel": 57, "dime": 24, "shell": "Flores Zero-Blitz / Drop-8 Zone", "dline_run_stop": 112, "pass_rush": 112, "blitz": 42, "perim_cb": 96, "slot_cov": 101, "lb_mismatch_rate": 18, "key_defender": "42% Blitz Rate (Forces Quick Slot/Hot-Read Throws)"},
-    "NE": {"man": 40, "zone": 60, "base": 28, "nickel": 58, "dime": 14, "shell": "Cover 1 Man / Pattern-Match", "dline_run_stop": 97, "pass_rush": 94, "blitz": 31, "perim_cb": 111, "slot_cov": 93, "lb_mismatch_rate": 25, "key_defender": "Christian Gonzalez (Shadow Perim CB1)"},
-    "NO": {"man": 35, "zone": 65, "base": 25, "nickel": 63, "dime": 12, "shell": "Cover 1 / Cover 4 Match", "dline_run_stop": 93, "pass_rush": 95, "blitz": 25, "perim_cb": 98, "slot_cov": 95, "lb_mismatch_rate": 23, "key_defender": "Demario Davis (LB Coverage)"},
-    "NYG": {"man": 31, "zone": 69, "base": 24, "nickel": 64, "dime": 12, "shell": "Cover 3 / Cover 1 Blitz", "dline_run_stop": 92, "pass_rush": 108, "blitz": 32, "perim_cb": 90, "slot_cov": 92, "lb_mismatch_rate": 25, "key_defender": "Dexter Lawrence (Nose Tackle) & Brian Burns"},
-    "NYJ": {"man": 34, "zone": 66, "base": 20, "nickel": 68, "dime": 12, "shell": "4-2-5 Nickel Cover 3 / Quarters", "dline_run_stop": 96, "pass_rush": 105, "blitz": 23, "perim_cb": 114, "slot_cov": 104, "lb_mismatch_rate": 19, "key_defender": "Sauce Gardner (Lockdown Perim CB)"},
-    "PHI": {"man": 26, "zone": 74, "base": 21, "nickel": 66, "dime": 13, "shell": "Fangio Two-High Quarters / Cover 6", "dline_run_stop": 110, "pass_rush": 109, "blitz": 21, "perim_cb": 110, "slot_cov": 105, "lb_mismatch_rate": 17, "key_defender": "Jalen Carter (DT) & Quinyon Mitchell / Cooper DeJean"},
-    "PIT": {"man": 36, "zone": 64, "base": 27, "nickel": 59, "dime": 14, "shell": "Single-High Cover 3 / Cover 1", "dline_run_stop": 108, "pass_rush": 112, "blitz": 33, "perim_cb": 105, "slot_cov": 94, "lb_mismatch_rate": 24, "key_defender": "T.J. Watt (Edge) & Joey Porter Jr. (Press CB)"},
-    "SEA": {"man": 25, "zone": 75, "base": 20, "nickel": 65, "dime": 15, "shell": "Macdonald Disguised Split-Safety Zone", "dline_run_stop": 98, "pass_rush": 102, "blitz": 28, "perim_cb": 106, "slot_cov": 103, "lb_mismatch_rate": 18, "key_defender": "Devon Witherspoon (Nickel/Perim CB)"},
-    "SF": {"man": 22, "zone": 78, "base": 24, "nickel": 66, "dime": 10, "shell": "Wide-9 4-3 Cover 3 / Cover 4", "dline_run_stop": 104, "pass_rush": 107, "blitz": 20, "perim_cb": 103, "slot_cov": 98, "lb_mismatch_rate": 16, "key_defender": "Fred Warner (Elite Middle-of-Field LB)"},
-    "TB": {"man": 23, "zone": 77, "base": 25, "nickel": 61, "dime": 14, "shell": "Bowles Heavy Zone-Blitz / Cover 3", "dline_run_stop": 109, "pass_rush": 104, "blitz": 40, "perim_cb": 91, "slot_cov": 87, "lb_mismatch_rate": 30, "key_defender": "Vita Vea (Run Stopper) / Vulnerable Middle Zone vs Slot & TE"},
-    "TEN": {"man": 33, "zone": 67, "base": 26, "nickel": 62, "dime": 12, "shell": "Aggressive Press / Cover 3", "dline_run_stop": 102, "pass_rush": 97, "blitz": 30, "perim_cb": 99, "slot_cov": 95, "lb_mismatch_rate": 22, "key_defender": "Jeffery Simmons (Interior D-Line)"},
-    "WAS": {"man": 34, "zone": 66, "base": 26, "nickel": 62, "dime": 12, "shell": "Quinn Cover 3 / Man-Press", "dline_run_stop": 92, "pass_rush": 96, "blitz": 29, "perim_cb": 89, "slot_cov": 88, "lb_mismatch_rate": 27, "key_defender": "Vulnerable Outside CBs vs Vertical/Perim WRs"}
-}
+def build_live_defense_matrix(league=None, current_week=10):
+    """
+    Clones the base 32-team scheme matrix and dynamically updates ratings 24/7 using:
+    1. ESPN's live NFL Injury API (penalizing CB, DL, EDGE, LB, and S injuries)
+    2. Live ESPN Fantasy D/ST performance & recent scoring form
+    """
+    cache_path = f"/tmp/live_def_matrix_wk{current_week}_v1.json"
+    now_ts = datetime.now(timezone.utc).timestamp()
+
+    if os.path.exists(cache_path):
+        try:
+            with open(cache_path, "r") as f:
+                cached = json.load(f)
+            if now_ts - cached.get("timestamp", 0) < 1800:  # Refreshes every 30 mins
+                return cached["matrix"]
+        except Exception:
+            pass
+
+    # Start with a fresh copy of the base scheme tendencies
+    live_matrix = {}
+    for team_abbr, base_data in NFL_DEFENSE_MATRIX.items():
+        live_matrix[team_abbr] = dict(base_data)
+        live_matrix[team_abbr]["injuries"] = []
+        live_matrix[team_abbr]["live_adj_summary"] = "Full Strength"
+
+    # 1. Fetch Live NFL Defensive Injuries from ESPN's Public API
+    try:
+        inj_url = "https://site.api.espn.com/apis/site/v2/sports/football/nfl/injuries"
+        req = urllib.request.Request(inj_url, headers={'User-Agent': 'Mozilla/5.0'})
+        with urllib.request.urlopen(req, timeout=2.5) as resp:
+            inj_json = json.loads(resp.read().decode('utf-8'))
+
+        for team_entry in inj_json.get("injuries", []):
+            raw_abbr = team_entry.get("team", {}).get("abbreviation", "")
+            if not raw_abbr:
+                # Fallback: parse team displayName if abbreviation isn't at top level
+                d_name = team_entry.get("displayName", "")
+                for k in live_matrix:
+                    if k == raw_abbr:
+                        break
+            t_abbr = normalize_team_abbrev(raw_abbr)
+
+            for item in team_entry.get("injuries", []):
+                athlete = item.get("athlete", {})
+                if not t_abbr:
+                    t_abbr = normalize_team_abbrev(athlete.get("team", {}).get("abbreviation", ""))
+                if t_abbr not in live_matrix:
+                    continue
+
+                pos = athlete.get("position", {}).get("abbreviation", "").upper()
+                name = athlete.get("displayName", "Defender")
+                status = item.get("status", "")
+
+                # Only process defensive positions
+                if pos not in ("CB", "DB", "S", "FS", "SS", "LB", "ILB", "MLB", "OLB", "DE", "DT", "NT", "DL", "EDGE"):
+                    continue
+
+                # Weight impact by injury severity
+                status_low = status.lower()
+                if any(s in status_low for s in ("out", "injured reserve", "ir", "doubtful", "suspension")):
+                    sev = 1.0
+                    short_stat = "OUT/IR" if "reserve" in status_low or "out" in status_low else "Doubtful"
+                elif "questionable" in status_low:
+                    sev = 0.45
+                    short_stat = "Q"
+                else:
+                    continue
+
+                d_team = live_matrix[t_abbr]
+                d_team["injuries"].append(f"{name} ({pos} - {short_stat})")
+
+                # Apply position-specific rating downgrades to the defense
+                if pos in ("CB", "DB"):
+                    d_team["perim_cb"] = max(72, round(d_team["perim_cb"] - (6.5 * sev)))
+                    d_team["slot_cov"] = max(72, round(d_team["slot_cov"] - (3.5 * sev)))
+                elif pos in ("DT", "NT", "DL"):
+                    d_team["dline_run_stop"] = max(72, round(d_team["dline_run_stop"] - (6.5 * sev)))
+                    d_team["pass_rush"] = max(72, round(d_team["pass_rush"] - (2.5 * sev)))
+                elif pos in ("DE", "EDGE", "OLB"):
+                    d_team["pass_rush"] = max(72, round(d_team["pass_rush"] - (6.5 * sev)))
+                    d_team["dline_run_stop"] = max(72, round(d_team["dline_run_stop"] - (3.0 * sev)))
+                elif pos in ("LB", "ILB", "MLB"):
+                    d_team["slot_cov"] = max(72, round(d_team["slot_cov"] - (5.5 * sev)))
+                    d_team["dline_run_stop"] = max(72, round(d_team["dline_run_stop"] - (3.5 * sev)))
+                    d_team["lb_mismatch_rate"] = min(45, round(d_team["lb_mismatch_rate"] + (4.5 * sev)))
+                elif pos in ("S", "FS", "SS"):
+                    d_team["slot_cov"] = max(72, round(d_team["slot_cov"] - (4.5 * sev)))
+                    d_team["perim_cb"] = max(72, round(d_team["perim_cb"] - (3.0 * sev)))
+                    d_team["lb_mismatch_rate"] = min(45, round(d_team["lb_mismatch_rate"] + (3.0 * sev)))
+    except Exception:
+        pass
+
+    # 2. Calibrate with Live ESPN Fantasy D/ST Scoring Form (if league object is available)
+    if league is not None:
+        try:
+            dst_players = league.free_agents(week=current_week, size=40, position='D/ST')
+            for t in league.teams:
+                for p in t.roster:
+                    if p.position == 'D/ST':
+                        dst_players.append(p)
+
+            for dst in dst_players:
+                pro_t = normalize_team_abbrev(getattr(dst, 'proTeam', ''))
+                if pro_t in live_matrix:
+                    avg_pts = float(getattr(dst, 'avg_points', 6.0) or 6.0)
+                    # NFL D/ST average is ~6.5 fantasy pts/game; scale ratings slightly by real-time form
+                    form_delta = round((avg_pts - 6.5) * 1.1)
+                    d_team = live_matrix[pro_t]
+                    d_team["dline_run_stop"] = max(72, min(120, d_team["dline_run_stop"] + form_delta))
+                    d_team["pass_rush"] = max(72, min(120, d_team["pass_rush"] + form_delta))
+                    d_team["perim_cb"] = max(72, min(120, d_team["perim_cb"] + form_delta))
+        except Exception:
+            pass
+
+    for t_abbr, d_team in live_matrix.items():
+        if d_team["injuries"]:
+            top_inj = ", ".join(d_team["injuries"][:4])
+            extra = f" +{len(d_team['injuries']) - 4} more" if len(d_team["injuries"]) > 4 else ""
+            d_team["live_adj_summary"] = f"{top_inj}{extra}"
+
+    try:
+        with open(cache_path, "w") as f:
+            json.dump({"timestamp": now_ts, "matrix": live_matrix}, f)
+    except Exception:
+        pass
+
+    return live_matrix
 
 SLOT_HEAVY_WRS = {
     "amon ra st brown", "cooper kupp", "chris godwin", "cee dee lamb", "jayden reed",
@@ -169,21 +262,24 @@ def normalize_team_abbrev(raw_opp):
     return mapping.get(s, s)
 
 
-def analyze_micro_matchup(player, pos, espn_proj, recent_avg, is_desperate=False):
+def analyze_micro_matchup(player, pos, espn_proj, recent_avg, is_desperate=False, live_matrix=None):
+    active_matrix = live_matrix or NFL_DEFENSE_MATRIX
     raw_opp = getattr(player, 'pro_opponent', '') or ''
     opp = normalize_team_abbrev(raw_opp)
 
-    if not opp or opp == "BYE" or opp not in NFL_DEFENSE_MATRIX:
+    if not opp or opp == "BYE" or opp not in active_matrix:
         return 0.0, "N/A", {
             "opponent": opp or "BYE",
             "headline": "Bye Week or Unscheduled Opponent",
             "coverage_shell": "N/A",
             "personnel_split": "N/A",
             "individual_battle": "No active matchup this week.",
-            "trench_or_lb_note": "N/A"
+            "trench_or_lb_note": "N/A",
+            "injury_impact": "None"
         }
 
-    d = NFL_DEFENSE_MATRIX[opp]
+    d = active_matrix[opp]
+    base_d = NFL_DEFENSE_MATRIX.get(opp, d)
     clean_n, _ = clean_player_name(player.name)
     adj = 0.0
 
@@ -299,6 +395,25 @@ def analyze_micro_matchup(player, pos, espn_proj, recent_avg, is_desperate=False
     else:
         grade = "D (Shadow / Trench Wall)"
 
+    # Calculate how much live defensive injuries downgraded this defense compared to baseline
+    cb_drop = base_d["perim_cb"] - d["perim_cb"]
+    dl_drop = base_d["dline_run_stop"] - d["dline_run_stop"]
+    lb_jump = d["lb_mismatch_rate"] - base_d["lb_mismatch_rate"]
+
+    inj_list = d.get("injuries", [])
+    if inj_list:
+        impacts = []
+        if cb_drop > 0:
+            impacts.append(f"CB Cov -{cb_drop}")
+        if dl_drop > 0:
+            impacts.append(f"Run Stop -{dl_drop}")
+        if lb_jump > 0:
+            impacts.append(f"LB Mismatch +{lb_jump}%")
+        impact_str = f" ({', '.join(impacts)})" if impacts else ""
+        injury_report_str = f"🏥 {d.get('live_adj_summary', '')}{impact_str}"
+    else:
+        injury_report_str = "✓ No Major Defensive Starters Listed Out/IR"
+
     report = {
         "opponent": opp,
         "grade": grade,
@@ -306,7 +421,8 @@ def analyze_micro_matchup(player, pos, espn_proj, recent_avg, is_desperate=False
         "coverage_shell": f"{d['shell']} ({man_pct}% Man / {zone_pct}% Zone)",
         "personnel_split": f"{base_pct}% Base • {nickel_pct}% Nickel • {dime_pct}% Dime (Blitz: {d['blitz']}%)",
         "individual_battle": battle,
-        "trench_or_lb_note": trench_lb_note
+        "trench_or_lb_note": trench_lb_note,
+        "injury_impact": injury_report_str
     }
     return adj, grade, report
 
@@ -812,13 +928,14 @@ class handler(BaseHTTPRequestHandler):
             is_desperate = playoff_pct < 45.0
 
             yt_videos = fetch_weekly_2026_videos(current_week=week, target_year=year)
+            live_def_matrix = build_live_defense_matrix(league=league, current_week=week)
 
             def score_player_full(player):
                 player.pro_opponent = resolve_player_opponent(player)
                 espn_proj, recent_avg, true_base = get_true_baseline(player)
 
                 scheme_adj, matchup_grade, matchup_report = analyze_micro_matchup(
-                    player, player.position, espn_proj, recent_avg, is_desperate
+                    player, player.position, espn_proj, recent_avg, is_desperate, live_def_matrix
                 )
 
                 # Context-Window Sentiment Scoring: only awards YT points when spoken context is genuinely positive
