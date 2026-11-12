@@ -252,6 +252,9 @@
                       ▶ Jump to ${c.timestamp}
                     </a>
                   </div>
+                  <div style="font-size: 0.76rem; color: #eab308; margin-bottom: 3px;">
+                    <strong>${c.verdict || 'Analyzed'}</strong> &nbsp;|&nbsp; Signals: <code>${c.signals || 'context'}</code>
+                  </div>
                   <p style="font-size: 0.8rem; color: #9ca3af; font-style: italic; margin: 0;">"${c.snippet}"</p>
                 </div>
               `).join('');
