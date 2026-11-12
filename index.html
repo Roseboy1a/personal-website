@@ -129,7 +129,7 @@
           return;
         }
 
-        const storageKey = `fantasy_knowledge_${data.year}_week_${data.week}_v8`;
+        const storageKey = `fantasy_knowledge_${data.year}_week_${data.week}_v9`;
         const savedMemory = JSON.parse(localStorage.getItem(storageKey) || '{"videos": {}, "playerMentions": {}}');
 
         (data.videos_scanned || []).forEach(v => {
