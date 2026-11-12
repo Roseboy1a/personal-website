@@ -104,7 +104,7 @@
       const timeoutId = setTimeout(() => controller.abort(), 14000);
 
       try {
-        if (statusEl) statusEl.innerText = "Running 4-Factor Model (ESPN + 2026 YouTube + Sleeper Live Trends)...";
+        if (statusEl) statusEl.innerText = "Running Deep NFL Scheme & Micro-Matchup Engine (Man/Zone %, Nickel/LB Mismatches, Trench EPA & YT Film)...";
 
         const res = await fetch('/api/fantasy', { signal: controller.signal });
         clearTimeout(timeoutId);
@@ -129,8 +129,7 @@
           return;
         }
 
-        // Bumped to _v6 so browser uses the new 4-factor scoring & clean Tuesday cutoff
-        const storageKey = `fantasy_knowledge_${data.year}_week_${data.week}_v6`;
+        const storageKey = `fantasy_knowledge_${data.year}_week_${data.week}_v8`;
         const savedMemory = JSON.parse(localStorage.getItem(storageKey) || '{"videos": {}, "playerMentions": {}}');
 
         (data.videos_scanned || []).forEach(v => {
@@ -195,7 +194,7 @@
             </p>
             <details style="margin-top: 8px;">
               <summary style="cursor: pointer; font-size: 0.82rem; color: #4ade80; user-select: none;">
-                ✓ Verified ${data.year} Season • Week ${data.week} Knowledge Vault: ${totalWeeklyVideos} Videos + Live Sleeper API (Click to view videos)
+                ✓ Verified ${data.year} Season • Week ${data.week} Knowledge Vault: ${totalWeeklyVideos} Videos + 32-Team NFL Scheme Matrix
               </summary>
               <div style="margin-top: 8px; max-height: 220px; overflow-y: auto; padding: 8px 12px; background: #111; border-radius: 6px; border: 1px solid #262626;">
                 ${allVideosList || '<p style="font-size:0.8rem;">No videos cached yet.</p>'}
@@ -211,13 +210,38 @@
             const hasMentions = rec.yt_channels && rec.yt_channels.length > 0;
             const ytBadge = hasMentions
               ? `<span style="color: #4ade80; font-size: 0.84rem;">🔥 YT (${rec.sentiment || 'Positive'}): Mentioned ${rec.yt_mentions}x on ${rec.yt_channels.join(', ')} (+${rec.yt_bonus} pts)</span>`
-              : `<span style="color: #777; font-size: 0.84rem;">📊 No YT Mentions Yet (+0.0 pts)</span>`;
+              : `<span style="color: #777; font-size: 0.84rem;">📊 Pure Scheme & Usage Edge (+0.0 YT pts)</span>`;
 
-            const sleeperBadge = rec.sleeper_rank
-              ? `<div style="margin-top: 4px;"><span style="color: #c084fc; font-size: 0.84rem;">📈 Sleeper Live Market: Trending #${rec.sleeper_rank} (+${(rec.sleeper_adds || 0).toLocaleString()} adds in 24h → +${rec.sleeper_bonus} pts)</span></div>`
-              : '';
+            const mr = rec.matchup_report || {};
+            const dr = rec.drop_report || {};
+            const schemeColor = rec.scheme_adj >= 0.5 ? '#4ade80' : (rec.scheme_adj <= -0.5 ? '#ef4444' : '#eab308');
+            const schemeSign = rec.scheme_adj >= 0 ? `+${rec.scheme_adj}` : `${rec.scheme_adj}`;
+            const dropSchemeSign = (rec.drop_scheme_adj || 0) >= 0 ? `+${rec.drop_scheme_adj || 0}` : `${rec.drop_scheme_adj || 0}`;
 
-            let dropdownHtml = '';
+            const schemeDropdown = `
+              <details style="margin-top: 10px; background: #111111; border: 1px solid #262626; border-radius: 6px; padding: 8px 12px;">
+                <summary style="cursor: pointer; font-size: 0.85rem; color: ${schemeColor}; font-weight: 500; user-select: none;">
+                  🛡️ Micro-Matchup vs ${mr.opponent || 'OPP'}: ${rec.matchup_grade || 'Neutral'} (${schemeSign} Scheme Pts) — Click for Coverages & Personnel
+                </summary>
+                <div style="margin-top: 8px; font-size: 0.82rem; color: #ccc; line-height: 1.5;">
+                  <div style="padding-bottom: 8px; margin-bottom: 8px; border-bottom: 1px solid #262626;">
+                    <strong style="color:#fff;">ADD: ${rec.add} vs ${mr.opponent || 'OPP'} (${schemeSign} pts)</strong><br>
+                    • <strong>Coverage Shell Split:</strong> ${mr.coverage_shell || 'N/A'}<br>
+                    • <strong>Sub-Package Personnel:</strong> ${mr.personnel_split || 'N/A'}<br>
+                    • <strong>1-on-1 Assignment:</strong> ${mr.individual_battle || 'N/A'}<br>
+                    • <strong>Nickel / LB / Trench Note:</strong> <span style="color:#93c5fd;">${mr.trench_or_lb_note || 'N/A'}</span>
+                  </div>
+                  <div>
+                    <strong style="color:#aaa;">COMPARED TO ROSTERED: ${rec.drop} vs ${dr.opponent || 'OPP'} (${dropSchemeSign} pts)</strong><br>
+                    • <strong>Opponent Shell & Personnel:</strong> ${dr.coverage_shell || 'N/A'} | ${dr.personnel_split || 'N/A'}<br>
+                    • <strong>Assignment:</strong> ${dr.individual_battle || 'N/A'}<br>
+                    • <strong>Scheme Note:</strong> ${dr.trench_or_lb_note || 'N/A'}
+                  </div>
+                </div>
+              </details>
+            `;
+
+            let clipsDropdown = '';
             if (rec.clips && rec.clips.length > 0) {
               const clipsItems = rec.clips.map(c => `
                 <div style="padding: 8px 0; border-bottom: 1px solid #262626;">
@@ -232,8 +256,8 @@
                 </div>
               `).join('');
 
-              dropdownHtml = `
-                <details style="margin-top: 10px; background: #111111; border: 1px solid #262626; border-radius: 6px; padding: 8px 12px;">
+              clipsDropdown = `
+                <details style="margin-top: 8px; background: #111111; border: 1px solid #262626; border-radius: 6px; padding: 8px 12px;">
                   <summary style="cursor: pointer; font-size: 0.85rem; color: #60a5fa; font-weight: 500; user-select: none;">
                     🎥 Where they talk about ${rec.add} (${rec.clips.length} video clip${rec.clips.length > 1 ? 's' : ''})
                   </summary>
@@ -247,20 +271,51 @@
             html += `
               <div class="card">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; flex-wrap: wrap;">
-                  <h3 style="margin: 0;">[${rec.pos}] Add ${rec.add} — Blended: ${rec.blended_score} pts (${rec.diff >= 0 ? '+' + rec.diff : rec.diff})</h3>
+                  <h3 style="margin: 0;">[${rec.pos}] Add ${rec.add} (vs ${mr.opponent || 'OPP'}) — Blended: ${rec.blended_score} pts (${rec.diff >= 0 ? '+' + rec.diff : rec.diff})</h3>
                   <span style="font-size: 0.8rem; color: #eab308;">${rec.tag}</span>
                 </div>
-                <p style="margin-bottom: 4px; font-size: 0.9rem;">
-                  <strong>True Base:</strong> ${rec.true_base} pts <span style="color:#777; font-size:0.82rem;">(ESPN Proj: ${rec.espn_proj} | Last 2 Wks: ${rec.recent_avg} avg)</span>
+                <p style="margin-bottom: 4px; font-size: 0.88rem;">
+                  <strong>Formula:</strong> ${rec.true_base} True Base <span style="color:#777;">(ESPN ${rec.espn_proj} / L2W ${rec.recent_avg})</span> 
+                  ${schemeSign} Scheme + ${rec.yt_bonus} YT
                 </p>
-                <p style="margin-bottom: 8px; font-size: 0.9rem;">
-                  <strong>Target to Replace:</strong> ${rec.drop} (${rec.drop_blended} Blended / ${rec.drop_proj} ESPN)
+                <p style="margin-bottom: 8px; font-size: 0.88rem;">
+                  <strong>Target to Replace:</strong> ${rec.drop} vs ${dr.opponent || 'OPP'} (${rec.drop_blended} Blended / ${rec.drop_proj} ESPN / ${dropSchemeSign} Scheme)
                 </p>
-                <div>${ytBadge}${sleeperBadge}</div>
-                ${dropdownHtml}
+                <div>${ytBadge}</div>
+                ${schemeDropdown}
+                ${clipsDropdown}
               </div>`;
           });
         }
+
+        if (data.roster && data.roster.length > 0) {
+          const rosterRows = data.roster.map(r => {
+            const rm = r.matchup_report || {};
+            const sSign = r.scheme_adj >= 0 ? `+${r.scheme_adj}` : `${r.scheme_adj}`;
+            return `
+              <div style="padding: 10px 0; border-bottom: 1px solid #222; font-size: 0.83rem;">
+                <div style="display:flex; justify-content:space-between; color:#fff; font-weight:bold; margin-bottom:3px;">
+                  <span>[${r.pos} - ${r.slot}] ${r.name} vs ${rm.opponent || 'BYE'}</span>
+                  <span style="color:#4ade80;">Blended: ${r.blended_score} pts (Base ${r.true_base} | Scheme ${sSign})</span>
+                </div>
+                <div style="color:#aaa;">• <strong>Scheme & Personnel:</strong> ${rm.coverage_shell || 'N/A'} | ${rm.personnel_split || 'N/A'}</div>
+                <div style="color:#aaa;">• <strong>Matchup Note:</strong> ${rm.individual_battle || 'N/A'} — <span style="color:#93c5fd;">${rm.trench_or_lb_note || ''}</span></div>
+              </div>
+            `;
+          }).join('');
+
+          html += `
+            <details class="card" style="margin-top: 18px; cursor: pointer;">
+              <summary style="font-weight: bold; color: #f2f2f2; font-size: 1rem; user-select: none;">
+                🔬 View My Full Roster Micro-Matchup & Scheme Lab (${data.roster.length} Players)
+              </summary>
+              <div style="margin-top: 10px;">
+                ${rosterRows}
+              </div>
+            </details>
+          `;
+        }
+
         container.innerHTML = html;
       } catch (err) {
         clearTimeout(timeoutId);
