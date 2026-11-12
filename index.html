@@ -230,6 +230,21 @@
                     • <strong>Sub-Package Personnel:</strong> ${mr.personnel_split || 'N/A'}<br>
                     • <strong>1-on-1 Assignment:</strong> ${mr.individual_battle || 'N/A'}<br>
                     • <strong>Nickel / LB / Trench Note:</strong> <span style="color:#93c5fd;">${mr.trench_or_lb_note || 'N/A'}</span>
+                    <div style="padding-bottom: 8px; margin-bottom: 8px; border-bottom: 1px solid #262626;">
+                    <strong style="color:#fff;">ADD: ${rec.add} vs ${mr.opponent || 'OPP'} (${schemeSign} pts)</strong><br>
+                    • <strong>Coverage Shell Split:</strong> ${mr.coverage_shell || 'N/A'}<br>
+                    • <strong>Sub-Package Personnel:</strong> ${mr.personnel_split || 'N/A'}<br>
+                    • <strong>1-on-1 Assignment:</strong> ${mr.individual_battle || 'N/A'}<br>
+                    • <strong>Nickel / LB / Trench Note:</strong> <span style="color:#93c5fd;">${mr.trench_or_lb_note || 'N/A'}</span><br>
+                    • <strong>Live Opponent DEF Injuries:</strong> <span style="color:#fca5a5;">${mr.injury_impact || 'Scanning...'}</span>
+                  </div>
+                  <div>
+                    <strong style="color:#aaa;">COMPARED TO ROSTERED: ${rec.drop} vs ${dr.opponent || 'OPP'} (${dropSchemeSign} pts)</strong><br>
+                    • <strong>Opponent Shell & Personnel:</strong> ${dr.coverage_shell || 'N/A'} | ${dr.personnel_split || 'N/A'}<br>
+                    • <strong>Assignment:</strong> ${dr.individual_battle || 'N/A'}<br>
+                    • <strong>Scheme Note:</strong> ${dr.trench_or_lb_note || 'N/A'}<br>
+                    • <strong>Live Opponent DEF Injuries:</strong> <span style="color:#fca5a5;">${dr.injury_impact || 'Scanning...'}</span>
+                  </div>
                   </div>
                   <div>
                     <strong style="color:#aaa;">COMPARED TO ROSTERED: ${rec.drop} vs ${dr.opponent || 'OPP'} (${dropSchemeSign} pts)</strong><br>
