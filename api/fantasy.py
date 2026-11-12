@@ -75,6 +75,59 @@ AMBIGUOUS_SURNAMES = {
     "legette", "mcconkey", "polk", "burton", "mcmillan", "franklin", "corley", "thrash", "means"
 }
 
+# ==============================================================================
+# 32-TEAM NFL DEFENSIVE SCHEME, PERSONNEL & TRENCH MATCHUP MATRIX
+# ==============================================================================
+NFL_DEFENSE_MATRIX = {
+    "ARI": {"man": 24, "zone": 76, "base": 22, "nickel": 64, "dime": 14, "shell": "Cover 3 / Quarters", "dline_run_stop": 89, "pass_rush": 90, "blitz": 27, "perim_cb": 88, "slot_cov": 90, "lb_mismatch_rate": 24, "key_defender": "Budda Baker (Box/Slot S)"},
+    "ATL": {"man": 22, "zone": 78, "base": 24, "nickel": 65, "dime": 11, "shell": "Cover 3 / Cover 4", "dline_run_stop": 94, "pass_rush": 87, "blitz": 23, "perim_cb": 99, "slot_cov": 91, "lb_mismatch_rate": 26, "key_defender": "A.J. Terrell (Perim CB)"},
+    "BAL": {"man": 31, "zone": 69, "base": 26, "nickel": 58, "dime": 16, "shell": "Split-Safety / Disguised Zone", "dline_run_stop": 114, "pass_rush": 109, "blitz": 30, "perim_cb": 103, "slot_cov": 108, "lb_mismatch_rate": 14, "key_defender": "Kyle Hamilton (Slot/Apex) & Roquan Smith"},
+    "BUF": {"man": 21, "zone": 79, "base": 12, "nickel": 76, "dime": 12, "shell": "Nickel Cover 2 / Cover 4", "dline_run_stop": 95, "pass_rush": 104, "blitz": 24, "perim_cb": 104, "slot_cov": 106, "lb_mismatch_rate": 16, "key_defender": "Taron Johnson (Elite Nickel CB)"},
+    "CAR": {"man": 26, "zone": 74, "base": 28, "nickel": 60, "dime": 12, "shell": "3-4 Cover 3 / Quarters", "dline_run_stop": 86, "pass_rush": 86, "blitz": 29, "perim_cb": 92, "slot_cov": 87, "lb_mismatch_rate": 29, "key_defender": "Jaycee Horn (Perim CB)"},
+    "CHI": {"man": 25, "zone": 75, "base": 23, "nickel": 67, "dime": 10, "shell": "4-3 Cover 2 / Tampa 2", "dline_run_stop": 98, "pass_rush": 99, "blitz": 22, "perim_cb": 111, "slot_cov": 105, "lb_mismatch_rate": 18, "key_defender": "Jaylon Johnson (Shadow CB) & Kyler Gordon"},
+    "CIN": {"man": 30, "zone": 70, "base": 22, "nickel": 66, "dime": 12, "shell": "Cover 3 / Man-Match", "dline_run_stop": 91, "pass_rush": 97, "blitz": 26, "perim_cb": 93, "slot_cov": 89, "lb_mismatch_rate": 25, "key_defender": "Trey Hendrickson (Edge Rush)"},
+    "CLE": {"man": 44, "zone": 56, "base": 20, "nickel": 64, "dime": 16, "shell": "Aggressive Press Cover 1 Man", "dline_run_stop": 107, "pass_rush": 113, "blitz": 33, "perim_cb": 109, "slot_cov": 98, "lb_mismatch_rate": 19, "key_defender": "Myles Garrett (Edge) & Denzel Ward (Man CB)"},
+    "DAL": {"man": 36, "zone": 64, "base": 24, "nickel": 61, "dime": 15, "shell": "Cover 1 / Cover 3 Press", "dline_run_stop": 88, "pass_rush": 107, "blitz": 31, "perim_cb": 101, "slot_cov": 92, "lb_mismatch_rate": 24, "key_defender": "Interior D-Line (Vulnerable vs Inside Run)"},
+    "DEN": {"man": 42, "zone": 58, "base": 25, "nickel": 60, "dime": 15, "shell": "Heavy Blitz Cover 1 / Cover 3", "dline_run_stop": 104, "pass_rush": 110, "blitz": 39, "perim_cb": 116, "slot_cov": 101, "lb_mismatch_rate": 21, "key_defender": "Pat Surtain II (Elite Shadow CB1)"},
+    "DET": {"man": 41, "zone": 59, "base": 29, "nickel": 59, "dime": 12, "shell": "Base/Nickel Press Man Cover 1", "dline_run_stop": 115, "pass_rush": 105, "blitz": 34, "perim_cb": 95, "slot_cov": 94, "lb_mismatch_rate": 27, "key_defender": "Elite Run Wall (Funnels teams to Slot/Pass)"},
+    "GB": {"man": 27, "zone": 73, "base": 25, "nickel": 63, "dime": 12, "shell": "4-3 Single-High Cover 3", "dline_run_stop": 99, "pass_rush": 102, "blitz": 25, "perim_cb": 101, "slot_cov": 95, "lb_mismatch_rate": 23, "key_defender": "Xavier McKinney (Centerfield Safety)"},
+    "HOU": {"man": 32, "zone": 68, "base": 24, "nickel": 65, "dime": 11, "shell": "4-3 Quarters / Cover 3 Press", "dline_run_stop": 106, "pass_rush": 111, "blitz": 24, "perim_cb": 110, "slot_cov": 96, "lb_mismatch_rate": 22, "key_defender": "Derek Stingley Jr. (Perim CB) & Will Anderson"},
+    "IND": {"man": 19, "zone": 81, "base": 23, "nickel": 68, "dime": 9, "shell": "Static Cover 3 Zone", "dline_run_stop": 93, "pass_rush": 96, "blitz": 20, "perim_cb": 90, "slot_cov": 94, "lb_mismatch_rate": 26, "key_defender": "Kenny Moore II (Slot CB)"},
+    "JAX": {"man": 38, "zone": 62, "base": 27, "nickel": 61, "dime": 12, "shell": "Press Man Cover 1", "dline_run_stop": 96, "pass_rush": 95, "blitz": 29, "perim_cb": 91, "slot_cov": 88, "lb_mismatch_rate": 28, "key_defender": "Vulnerable Secondary vs Motion/Slot"},
+    "KC": {"man": 39, "zone": 61, "base": 22, "nickel": 62, "dime": 16, "shell": "Spagnuolo Disguised Blitz / Man", "dline_run_stop": 111, "pass_rush": 108, "blitz": 37, "perim_cb": 112, "slot_cov": 106, "lb_mismatch_rate": 19, "key_defender": "Trent McDuffie (CB1) & Chris Jones (Interior DL)"},
+    "LAC": {"man": 23, "zone": 77, "base": 21, "nickel": 63, "dime": 16, "shell": "Minter Two-High Quarters / Zone", "dline_run_stop": 103, "pass_rush": 103, "blitz": 25, "perim_cb": 98, "slot_cov": 102, "lb_mismatch_rate": 17, "key_defender": "Derwin James (Hybrid Box/Slot Defender)"},
+    "LAR": {"man": 24, "zone": 76, "base": 25, "nickel": 61, "dime": 14, "shell": "Cover 3 / Quarters Zone", "dline_run_stop": 95, "pass_rush": 104, "blitz": 26, "perim_cb": 89, "slot_cov": 88, "lb_mismatch_rate": 27, "key_defender": "Jared Verse (Edge) / Vulnerable Secondary"},
+    "LV": {"man": 28, "zone": 72, "base": 26, "nickel": 62, "dime": 12, "shell": "Cover 3 / Cover 1 Mix", "dline_run_stop": 96, "pass_rush": 103, "blitz": 27, "perim_cb": 92, "slot_cov": 94, "lb_mismatch_rate": 24, "key_defender": "Maxx Crosby (Edge Rush)"},
+    "MIA": {"man": 29, "zone": 71, "base": 23, "nickel": 63, "dime": 14, "shell": "Split-Safety Cover 4 / Cover 3", "dline_run_stop": 97, "pass_rush": 98, "blitz": 28, "perim_cb": 102, "slot_cov": 97, "lb_mismatch_rate": 21, "key_defender": "Jalen Ramsey (Perim/Apex CB)"},
+    "MIN": {"man": 18, "zone": 82, "base": 19, "nickel": 57, "dime": 24, "shell": "Flores Zero-Blitz / Drop-8 Zone", "dline_run_stop": 112, "pass_rush": 112, "blitz": 42, "perim_cb": 96, "slot_cov": 101, "lb_mismatch_rate": 18, "key_defender": "42% Blitz Rate (Forces Quick Slot/Hot-Read Throws)"},
+    "NE": {"man": 40, "zone": 60, "base": 28, "nickel": 58, "dime": 14, "shell": "Cover 1 Man / Pattern-Match", "dline_run_stop": 97, "pass_rush": 94, "blitz": 31, "perim_cb": 111, "slot_cov": 93, "lb_mismatch_rate": 25, "key_defender": "Christian Gonzalez (Shadow Perim CB1)"},
+    "NO": {"man": 35, "zone": 65, "base": 25, "nickel": 63, "dime": 12, "shell": "Cover 1 / Cover 4 Match", "dline_run_stop": 93, "pass_rush": 95, "blitz": 25, "perim_cb": 98, "slot_cov": 95, "lb_mismatch_rate": 23, "key_defender": "Demario Davis (LB Coverage)"},
+    "NYG": {"man": 31, "zone": 69, "base": 24, "nickel": 64, "dime": 12, "shell": "Cover 3 / Cover 1 Blitz", "dline_run_stop": 92, "pass_rush": 108, "blitz": 32, "perim_cb": 90, "slot_cov": 92, "lb_mismatch_rate": 25, "key_defender": "Dexter Lawrence (Nose Tackle) & Brian Burns"},
+    "NYJ": {"man": 34, "zone": 66, "base": 20, "nickel": 68, "dime": 12, "shell": "4-2-5 Nickel Cover 3 / Quarters", "dline_run_stop": 96, "pass_rush": 105, "blitz": 23, "perim_cb": 114, "slot_cov": 104, "lb_mismatch_rate": 19, "key_defender": "Sauce Gardner (Lockdown Perim CB)"},
+    "PHI": {"man": 26, "zone": 74, "base": 21, "nickel": 66, "dime": 13, "shell": "Fangio Two-High Quarters / Cover 6", "dline_run_stop": 110, "pass_rush": 109, "blitz": 21, "perim_cb": 110, "slot_cov": 105, "lb_mismatch_rate": 17, "key_defender": "Jalen Carter (DT) & Quinyon Mitchell / Cooper DeJean"},
+    "PIT": {"man": 36, "zone": 64, "base": 27, "nickel": 59, "dime": 14, "shell": "Single-High Cover 3 / Cover 1", "dline_run_stop": 108, "pass_rush": 112, "blitz": 33, "perim_cb": 105, "slot_cov": 94, "lb_mismatch_rate": 24, "key_defender": "T.J. Watt (Edge) & Joey Porter Jr. (Press CB)"},
+    "SEA": {"man": 25, "zone": 75, "base": 20, "nickel": 65, "dime": 15, "shell": "Macdonald Disguised Split-Safety Zone", "dline_run_stop": 98, "pass_rush": 102, "blitz": 28, "perim_cb": 106, "slot_cov": 103, "lb_mismatch_rate": 18, "key_defender": "Devon Witherspoon (Nickel/Perim CB)"},
+    "SF": {"man": 22, "zone": 78, "base": 24, "nickel": 66, "dime": 10, "shell": "Wide-9 4-3 Cover 3 / Cover 4", "dline_run_stop": 104, "pass_rush": 107, "blitz": 20, "perim_cb": 103, "slot_cov": 98, "lb_mismatch_rate": 16, "key_defender": "Fred Warner (Elite Middle-of-Field LB)"},
+    "TB": {"man": 23, "zone": 77, "base": 25, "nickel": 61, "dime": 14, "shell": "Bowles Heavy Zone-Blitz / Cover 3", "dline_run_stop": 109, "pass_rush": 104, "blitz": 40, "perim_cb": 91, "slot_cov": 87, "lb_mismatch_rate": 30, "key_defender": "Vita Vea (Run Stopper) / Vulnerable Middle Zone vs Slot & TE"},
+    "TEN": {"man": 33, "zone": 67, "base": 26, "nickel": 62, "dime": 12, "shell": "Aggressive Press / Cover 3", "dline_run_stop": 102, "pass_rush": 97, "blitz": 30, "perim_cb": 99, "slot_cov": 95, "lb_mismatch_rate": 22, "key_defender": "Jeffery Simmons (Interior D-Line)"},
+    "WAS": {"man": 34, "zone": 66, "base": 26, "nickel": 62, "dime": 12, "shell": "Quinn Cover 3 / Man-Press", "dline_run_stop": 92, "pass_rush": 96, "blitz": 29, "perim_cb": 89, "slot_cov": 88, "lb_mismatch_rate": 27, "key_defender": "Vulnerable Outside CBs vs Vertical/Perim WRs"}
+}
+
+SLOT_HEAVY_WRS = {
+    "amon ra st brown", "cooper kupp", "chris godwin", "cee dee lamb", "jayden reed",
+    "khalil shakir", "rashee rice", "stefon diggs", "jaxon smith njigba", "josh downs",
+    "wan dale robinson", "jakobi meyers", "christian kirk", "ladd mcconkey", "zay flowers",
+    "devaughn vele", "demario douglas", "caleb douglas", "malik washington", "jauan jennings",
+    "parker washington", "tank dell", "xavier worthy", "ricky pearsall", "rome odunze"
+}
+
+PASS_CATCHING_RBS = {
+    "de von achane", "jahmyr gibbs", "bijan robinson", "alvin kamara", "breece hall",
+    "christian mccaffrey", "rachaad white", "chase brown", "austin ekeler", "tyjae spears",
+    "jaylen warren", "justice hill", "bucky irving", "tyrone tracy", "javonte williams",
+    "travis etienne", "kenneth walker", "aaron jones", "james cook", "d andre swift"
+}
+
 
 def format_seconds(sec):
     sec = max(0, int(sec))
@@ -89,6 +142,170 @@ def clean_player_name(name):
     cleaned = name.lower().replace(".", "").replace("'", "").replace("-", " ").strip()
     parts = [p for p in cleaned.split() if p not in ("jr", "sr", "ii", "iii", "iv", "v")]
     return " ".join(parts), parts
+
+
+def normalize_team_abbrev(raw_opp):
+    if not raw_opp:
+        return ""
+    s = str(raw_opp).upper().replace("@", "").strip()
+    mapping = {
+        "WSH": "WAS", "JAC": "JAX", "GNB": "GB", "KAN": "KC",
+        "LVR": "LV", "NOR": "NO", "NWE": "NE", "SFO": "SF", "TAM": "TB"
+    }
+    return mapping.get(s, s)
+
+
+def analyze_micro_matchup(player, pos, espn_proj, recent_avg, is_desperate=False):
+    """
+    Deep NFL Scheme & Micro-Matchup Engine (Expanded Weight: -4.0 to +5.0 pts).
+    Evaluates Man/Zone coverage shells, Base/Nickel/Dime sub-packages,
+    WR vs CB/LB alignments, and RB vs D-Line trench stuff rates.
+    """
+    raw_opp = getattr(player, 'pro_opponent', '') or ''
+    opp = normalize_team_abbrev(raw_opp)
+
+    if not opp or opp == "BYE" or opp not in NFL_DEFENSE_MATRIX:
+        return 0.0, "N/A", {
+            "opponent": opp or "BYE",
+            "headline": "Bye Week or Unscheduled Opponent",
+            "coverage_shell": "N/A",
+            "personnel_split": "N/A",
+            "individual_battle": "No active matchup this week.",
+            "trench_or_lb_note": "N/A"
+        }
+
+    d = NFL_DEFENSE_MATRIX[opp]
+    clean_n, _ = clean_player_name(player.name)
+    adj = 0.0
+
+    man_pct = d["man"]
+    zone_pct = d["zone"]
+    base_pct = d["base"]
+    nickel_pct = d["nickel"]
+    dime_pct = d["dime"]
+
+    if pos == "WR":
+        is_slot = (clean_n in SLOT_HEAVY_WRS) or (espn_proj < 11.2 and recent_avg >= espn_proj)
+        alignment = "Slot / Motion Alignment" if is_slot else "Perimeter (X/Z) Alignment"
+
+        # 1. Coverage Shell Fit (Man vs Zone)
+        if is_slot:
+            cov_edge = ((zone_pct - 70) * 0.065) + ((d["blitz"] - 27) * 0.05)
+        else:
+            cov_edge = ((man_pct - 30) * 0.045) if d["perim_cb"] < 102 else -((man_pct - 30) * 0.045)
+        adj += cov_edge
+
+        # 2. Specific CB vs WR Battle & Shadow Check
+        if not is_slot:
+            cb_diff = 100 - d["perim_cb"]
+            cb_pts = cb_diff * 0.13
+            adj += cb_pts
+            if d["perim_cb"] >= 110:
+                battle = f"Perimeter WR vs Elite Lockdown Corner ({d['key_defender']}) — Shadow Risk ({round(cb_pts, 1)} pts)"
+            elif d["perim_cb"] <= 91:
+                battle = f"Perimeter WR vs Burnable Outside CBs (Rating: {d['perim_cb']}) — Advantage WR (+{round(cb_pts, 1)} pts)"
+            else:
+                battle = f"Perimeter WR vs {opp} Outside CBs ({d['key_defender']})"
+        else:
+            slot_diff = 100 - d["slot_cov"]
+            slot_pts = slot_diff * 0.12
+            adj += slot_pts
+            if d["perim_cb"] >= 110:
+                adj += 1.2
+                battle = f"Slot Funnel Alert: {opp}'s outside lockdown ({d['key_defender']}) funnels targets inside to the Slot (+1.2 pts)"
+            else:
+                battle = f"Slot WR vs {opp} Nickel Package (Slot Coverage Rating: {d['slot_cov']})"
+
+        # 3. Nickel / Base Linebacker Coverage Mismatch Check
+        if d["lb_mismatch_rate"] >= 24 and (is_slot or nickel_pct >= 62):
+            lb_boost = round((d["lb_mismatch_rate"] - 19) * 0.15, 1)
+            adj += lb_boost
+            trench_lb_note = (
+                f"🔥 LB Coverage Mismatch ({d['lb_mismatch_rate']}% LB/Safety Slot Rate): "
+                f"When {opp} transitions between Base ({base_pct}%) and Nickel ({nickel_pct}%), "
+                f"motion/slot receivers isolate on Linebackers over the middle (+{lb_boost} pts)."
+            )
+        elif d["slot_cov"] >= 105 and is_slot:
+            trench_lb_note = f"⚠️ Tight Nickel Coverage: {opp} uses {d['key_defender']} to erase slot seams (Dime {dime_pct}%)."
+        else:
+            trench_lb_note = f"Standard {alignment} vs {opp} ({nickel_pct}% Nickel / {dime_pct}% Dime)."
+
+    elif pos == "RB":
+        is_receiving_back = (clean_n in PASS_CATCHING_RBS) or (recent_avg > espn_proj + 1.5)
+
+        # 1. Trench Battle: RB vs D-Line Run Stuff Rate
+        trench_diff = 100 - d["dline_run_stop"]
+        trench_pts = trench_diff * 0.15
+        adj += trench_pts
+
+        if d["dline_run_stop"] >= 109:
+            battle = f"RB vs Elite Interior Run Wall ({d['key_defender']}, Stuff Rating: {d['dline_run_stop']}) — Tough Trench Sledding ({round(trench_pts, 1)} pts)"
+        elif d["dline_run_stop"] <= 92:
+            battle = f"RB vs Soft Interior D-Line (Run Stop Rating: {d['dline_run_stop']}) — High Yards-Before-Contact Smash (+{round(trench_pts, 1)} pts)"
+        else:
+            battle = f"RB vs {opp} Defensive Front (Run Stop Rating: {d['dline_run_stop']} | Key: {d['key_defender']})"
+
+        # 2. Personnel Grouping (Light Boxes in Nickel/Dime vs Heavy Base Boxes)
+        sub_pkg_pct = nickel_pct + dime_pct
+        if sub_pkg_pct >= 77:
+            adj += 1.3
+            trench_lb_note = f"⚡ Light Box Advantage: {opp} plays {sub_pkg_pct}% Nickel/Dime (only {base_pct}% Base), creating 6-man light boxes for rushing lanes (+1.3 pts)."
+        elif is_receiving_back and (d["blitz"] >= 31 or zone_pct >= 75):
+            adj += 1.5
+            trench_lb_note = f"🔥 Checkdown/LB Mismatch: {opp}'s {d['blitz']}% blitz & {zone_pct}% zone forces Linebackers to cover RBs in space (+1.5 pts)."
+        else:
+            trench_lb_note = f"Box Count Split: {opp} runs {base_pct}% Base (7+ man box) vs {nickel_pct}% Nickel."
+
+    elif pos == "TE":
+        seam_diff = (100 - d["slot_cov"]) * 0.11 + ((d["lb_mismatch_rate"] - 20) * 0.13)
+        adj += seam_diff
+        if d["blitz"] >= 32:
+            adj += 1.0
+            battle = f"TE Hot-Read Advantage vs {opp}'s {d['blitz']}% Blitz Rate (+1.0 pts)"
+        else:
+            battle = f"TE vs {opp} Seam/LB Coverage (Slot/Box Rating: {d['slot_cov']})"
+
+        trench_lb_note = (
+            f"Linebacker Seam Matchup: {opp} allows a {d['lb_mismatch_rate']}% LB coverage mismatch rate "
+            f"in {d['shell']} ({zone_pct}% Zone / {man_pct}% Man)."
+        )
+
+    else:  # QB
+        rush_diff = (100 - d["pass_rush"]) * 0.12
+        sec_diff = (100 - ((d["perim_cb"] + d["slot_cov"]) / 2)) * 0.11
+        adj += (rush_diff + sec_diff)
+        battle = f"QB vs {opp} Pass Rush (Pressure Rating: {d['pass_rush']}, Blitz: {d['blitz']}%)"
+        trench_lb_note = f"Coverage Shell Read: {opp} runs {d['shell']} ({zone_pct}% Zone / {man_pct}% Man)."
+
+    # In Desperation Mode, amplify positive schematic mismatches by 20% to hunt ceiling plays
+    if is_desperate and adj > 0:
+        adj *= 1.20
+
+    adj = round(max(-4.0, min(5.0, adj)), 1)
+
+    if adj >= 2.2:
+        grade = "A+ (Smash Scheme Mismatch)"
+    elif adj >= 1.1:
+        grade = "A (Strong Scheme Edge)"
+    elif adj >= 0.3:
+        grade = "B+ (Favorable Fit)"
+    elif adj >= -0.4:
+        grade = "B (Neutral Scheme)"
+    elif adj >= -1.5:
+        grade = "C (Tough Assignment)"
+    else:
+        grade = "D (Shadow / Trench Wall)"
+
+    report = {
+        "opponent": opp,
+        "grade": grade,
+        "scheme_adj": adj,
+        "coverage_shell": f"{d['shell']} ({man_pct}% Man / {zone_pct}% Zone)",
+        "personnel_split": f"{base_pct}% Base • {nickel_pct}% Nickel • {dime_pct}% Dime (Blitz: {d['blitz']}%)",
+        "individual_battle": battle,
+        "trench_or_lb_note": trench_lb_note
+    }
+    return adj, grade, report
 
 
 def parse_chapter_segments(desc_text):
@@ -118,78 +335,8 @@ def get_current_fantasy_week_cutoff(now_utc):
     return cutoff
 
 
-def fetch_sleeper_trending_adds():
-    """Fetches the top 60 trending waiver wire adds in the last 24h from Sleeper's public API."""
-    cache_path = "/tmp/sleeper_trending_cache_v1.json"
-    now_ts = datetime.now(timezone.utc).timestamp()
-
-    # Use cached Sleeper map if updated within the last 60 minutes
-    if os.path.exists(cache_path):
-        try:
-            with open(cache_path, "r") as f:
-                cached = json.load(f)
-            if now_ts - cached.get("timestamp", 0) < 3600:
-                return cached.get("trending", {})
-        except Exception:
-            pass
-
-    trending_by_name = {}
-    try:
-        # 1. Fetch trending add IDs and counts (very small payload)
-        t_url = "https://api.sleeper.app/v1/players/nfl/trending/add?lookback_hours=24&limit=60"
-        req1 = urllib.request.Request(t_url, headers={'User-Agent': 'Mozilla/5.0'})
-        with urllib.request.urlopen(req1, timeout=2.0) as res1:
-            trending_list = json.loads(res1.read().decode('utf-8'))
-
-        if not trending_list:
-            return {}
-
-        target_ids = {str(item["player_id"]): (idx + 1, item["count"]) for idx, item in enumerate(trending_list)}
-
-        # 2. Check if we already cached Sleeper's player ID -> Name dictionary in /tmp
-        id_map_path = "/tmp/sleeper_id_to_name.json"
-        id_to_name = {}
-        if os.path.exists(id_map_path):
-            try:
-                with open(id_map_path, "r") as f:
-                    id_to_name = json.load(f)
-            except Exception:
-                id_to_name = {}
-
-        if not id_to_name:
-            p_url = "https://api.sleeper.app/v1/players/nfl"
-            req2 = urllib.request.Request(p_url, headers={'User-Agent': 'Mozilla/5.0'})
-            with urllib.request.urlopen(req2, timeout=3.5) as res2:
-                players_data = json.loads(res2.read().decode('utf-8'))
-            for pid, pinfo in players_data.items():
-                full_n = pinfo.get("full_name") or f"{pinfo.get('first_name', '')} {pinfo.get('last_name', '')}".strip()
-                if full_n:
-                    clean_n, _ = clean_player_name(full_n)
-                    id_to_name[str(pid)] = clean_n
-            try:
-                with open(id_map_path, "w") as f:
-                    json.dump(id_to_name, f)
-            except Exception:
-                pass
-
-        for pid, (rank, count) in target_ids.items():
-            cname = id_to_name.get(pid)
-            if cname:
-                trending_by_name[cname] = {"rank": rank, "adds": count}
-
-        try:
-            with open(cache_path, "w") as f:
-                json.dump({"timestamp": now_ts, "trending": trending_by_name}, f)
-        except Exception:
-            pass
-    except Exception:
-        pass
-
-    return trending_by_name
-
-
 def fetch_weekly_2026_videos(current_week, target_year=2026):
-    cache_path = f"/tmp/yt_knowledge_{target_year}_wk{current_week}_v6.json"
+    cache_path = f"/tmp/yt_knowledge_{target_year}_wk{current_week}_v8.json"
     saved_videos = {}
 
     if os.path.exists(cache_path):
@@ -327,7 +474,6 @@ def fetch_weekly_2026_videos(current_week, target_year=2026):
 
 
 def find_player_clips(player_name, yt_videos):
-    """Matches full player names and calculates quote sentiment (Positive vs Negative)."""
     clean_full, parts = clean_player_name(player_name)
     if len(parts) < 2:
         return [], 0, [], 1.0, "Neutral"
@@ -368,7 +514,6 @@ def find_player_clips(player_name, yt_videos):
                     has_safe_surname = True
 
             if has_full or has_safe_surname:
-                # Score sentiment words in this segment
                 for pw in POSITIVE_WORDS:
                     if pw in seg_clean:
                         pos_hits += 1
@@ -402,16 +547,15 @@ def find_player_clips(player_name, yt_videos):
                 "snippet": f"Confirmed full-name mention of {player_name} in {v['channel']}"
             })
 
-    # Calculate Sentiment Multiplier (Boosts bullish quotes, penalizes drop/injury warnings)
     if neg_hits > pos_hits + 1:
         sentiment_mult = 0.25
         sentiment_label = "⚠️ Caution/Negative"
     elif pos_hits >= neg_hits + 2:
         sentiment_mult = 1.25
-        sentiment_label = " Bullish Buy"
+        sentiment_label = "Bullish Buy"
     else:
         sentiment_mult = 1.0
-        sentiment_label = "Neutral/Positive"
+        sentiment_label = "Positive"
 
     return list(mentioned_channels), total_mentions, clips[:6], sentiment_mult, sentiment_label
 
@@ -514,7 +658,6 @@ class handler(BaseHTTPRequestHandler):
             my_team = next((t for t in league.teams if team_name.lower() in t.team_name.lower()), league.teams[0])
 
             def get_true_baseline(player):
-                """Calculates True Usage Baseline: 70% ESPN Weekly Proj + 30% Recent 2-Week Scoring Form."""
                 curr_stats = player.stats.get(week, {})
                 espn_proj = float(curr_stats.get('projected_points', player.projected_total_points / 17))
 
@@ -540,25 +683,28 @@ class handler(BaseHTTPRequestHandler):
 
             if playoff_pct < 35.0:
                 mode = "DESPERATION MODE"
-                mode_desc = "Playoff odds are critical (<35%). Prioritizing high-ceiling YouTube breakout stashes, Sleeper market surges, and immediate lineup swings."
+                mode_desc = "Playoff odds are critical (<35%). Exploiting Nickel/LB coverage mismatches, D-Line trench edges, and film-backed YouTube breakouts."
             elif playoff_pct < 60.0:
                 mode = "AGGRESSIVE PUSH"
-                mode_desc = "Playoff race is tight. Blending upside YouTube waiver targets and Sleeper trends with weekly matchup projections."
+                mode_desc = "Playoff race is tight. Blending scheme-specific coverage/trench edges with weekly usage and analyst film study."
             else:
                 mode = "CONTENDER MODE"
-                mode_desc = "Strong playoff position. Prioritizing high-floor depth and blocking league rivals."
+                mode_desc = "Strong playoff position. Prioritizing high-floor scheme fits and blocking league rivals."
 
             is_desperate = playoff_pct < 45.0
 
-            # Fetch YouTube videos & Sleeper live trending waiver adds in parallel
             yt_videos = fetch_weekly_2026_videos(current_week=week, target_year=year)
-            sleeper_trending = fetch_sleeper_trending_adds()
 
             def score_player_full(player):
                 espn_proj, recent_avg, true_base = get_true_baseline(player)
-                channels, mentions, clips, sent_mult, sent_label = find_player_clips(player.name, yt_videos)
 
-                # 1. Sentiment-Adjusted YouTube Bonus
+                # 1. Deep Defensive Scheme & Micro-Matchup Analysis (-4.0 to +5.0 pts)
+                scheme_adj, matchup_grade, matchup_report = analyze_micro_matchup(
+                    player, player.position, espn_proj, recent_avg, is_desperate
+                )
+
+                # 2. Sentiment-Adjusted YouTube Analyst Bonus
+                channels, mentions, clips, sent_mult, sent_label = find_player_clips(player.name, yt_videos)
                 if is_desperate:
                     raw_yt = len(channels) * 1.6 + (mentions * 0.35)
                     yt_bonus = round(min(raw_yt * sent_mult, 6.0), 1)
@@ -566,30 +712,15 @@ class handler(BaseHTTPRequestHandler):
                     raw_yt = len(channels) * 0.8 + (mentions * 0.15)
                     yt_bonus = round(min(raw_yt * sent_mult, 2.5), 1)
 
-                # 2. Sleeper Live Market Surge Bonus
-                clean_n, _ = clean_player_name(player.name)
-                s_info = sleeper_trending.get(clean_n)
-                sleeper_bonus = 0.0
-                sleeper_rank = None
-                sleeper_adds = 0
-                if s_info:
-                    sleeper_rank = s_info["rank"]
-                    sleeper_adds = s_info["adds"]
-                    # Top 10 trending gets biggest boost, scaling down through #60
-                    base_surge = max(0.4, 2.5 - ((sleeper_rank - 1) * 0.035))
-                    if is_desperate:
-                        base_surge *= 1.35
-                    sleeper_bonus = round(min(base_surge, 3.5), 1)
-
-                blended_score = round(true_base + yt_bonus + sleeper_bonus, 1)
+                blended_score = round(true_base + scheme_adj + yt_bonus, 1)
                 return {
                     "espn_proj": espn_proj,
                     "recent_avg": recent_avg,
                     "true_base": true_base,
+                    "scheme_adj": scheme_adj,
+                    "matchup_grade": matchup_grade,
+                    "matchup_report": matchup_report,
                     "yt_bonus": yt_bonus,
-                    "sleeper_bonus": sleeper_bonus,
-                    "sleeper_rank": sleeper_rank,
-                    "sleeper_adds": sleeper_adds,
                     "blended_score": blended_score,
                     "yt_mentions": mentions,
                     "yt_channels": channels,
@@ -597,7 +728,7 @@ class handler(BaseHTTPRequestHandler):
                     "clips": clips
                 }
 
-            # Score your own roster with the exact same 4-Factor model
+            # Score your own roster with the exact same 3-Pillar Scheme Model
             roster = []
             for p in my_team.roster:
                 sc = score_player_full(p)
@@ -607,6 +738,9 @@ class handler(BaseHTTPRequestHandler):
                     "slot": p.lineupSlot,
                     "proj": sc["espn_proj"],
                     "true_base": sc["true_base"],
+                    "scheme_adj": sc["scheme_adj"],
+                    "matchup_grade": sc["matchup_grade"],
+                    "matchup_report": sc["matchup_report"],
                     "blended_score": sc["blended_score"],
                     "yt_mentions": sc["yt_mentions"],
                     "yt_channels": sc["yt_channels"],
@@ -632,15 +766,15 @@ class handler(BaseHTTPRequestHandler):
                     sc = score_player_full(fa)
 
                     if sc["blended_score"] > weakest["blended_score"]:
-                        tag = "Safe Floor Upgrade"
-                        if is_desperate and (len(sc["yt_channels"]) >= 2 or (sc["sleeper_rank"] and sc["sleeper_rank"] <= 15)):
+                        tag = "Scheme & Floor Upgrade"
+                        if sc["scheme_adj"] >= 1.5 and len(sc["yt_channels"]) >= 1:
+                            tag = "🎯 Elite Scheme + Analyst Smash"
+                        elif sc["scheme_adj"] >= 1.5:
+                            tag = "🛡️ Defensive Scheme Mismatch"
+                        elif is_desperate and len(sc["yt_channels"]) >= 2:
                             tag = "🚨 High-Ceiling Breakout Swing"
-                        elif is_desperate and (len(sc["yt_channels"]) == 1 or sc["sleeper_rank"]):
-                            tag = "⚡ Upside Lotto Ticket"
                         elif len(sc["yt_channels"]) >= 2:
                             tag = "🔥 Consensus Waiver Target"
-                        elif sc["sleeper_rank"] and sc["sleeper_rank"] <= 20:
-                            tag = "📈 Live Market Surge"
 
                         scored_fas.append({
                             "pos": pos,
@@ -649,10 +783,10 @@ class handler(BaseHTTPRequestHandler):
                             "espn_proj": sc["espn_proj"],
                             "recent_avg": sc["recent_avg"],
                             "true_base": sc["true_base"],
+                            "scheme_adj": sc["scheme_adj"],
+                            "matchup_grade": sc["matchup_grade"],
+                            "matchup_report": sc["matchup_report"],
                             "yt_bonus": sc["yt_bonus"],
-                            "sleeper_bonus": sc["sleeper_bonus"],
-                            "sleeper_rank": sc["sleeper_rank"],
-                            "sleeper_adds": sc["sleeper_adds"],
                             "blended_score": sc["blended_score"],
                             "yt_mentions": sc["yt_mentions"],
                             "yt_channels": sc["yt_channels"],
@@ -661,6 +795,8 @@ class handler(BaseHTTPRequestHandler):
                             "drop": weakest["name"],
                             "drop_proj": weakest["proj"],
                             "drop_blended": weakest["blended_score"],
+                            "drop_scheme_adj": weakest["scheme_adj"],
+                            "drop_report": weakest["matchup_report"],
                             "diff": round(sc["blended_score"] - weakest["blended_score"], 1)
                         })
 
