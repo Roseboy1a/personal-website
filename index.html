@@ -232,6 +232,8 @@
                     • <strong>1-on-1 Assignment:</strong> ${mr.individual_battle || 'N/A'}<br>
                     • <strong>Nickel / LB / Trench Note:</strong> <span style="color:#93c5fd;">${mr.trench_or_lb_note || 'N/A'}</span><br>
                     • <strong>Live Opponent DEF Injuries:</strong> <span style="color:#fca5a5;">${mr.injury_impact || 'None listed'}</span>
+                    • <strong>Live Opponent DEF Injuries:</strong> <span style="color:#fca5a5;">${mr.injury_impact || 'None listed'}</span><br>
+                    • <strong>Overall Season DEF Standing:</strong> <span style="color:#a7f3d0;">${mr.weekly_trend || '2026 Season Overall'}</span>
                   </div>
                   <div>
                     <strong style="color:#aaa;">COMPARED TO ROSTERED: ${rec.drop} vs ${dr.opponent || 'OPP'} (${dropSchemeSign} pts)</strong><br>
@@ -281,7 +283,7 @@
                   <span style="font-size: 0.8rem; color: #eab308;">${rec.tag}</span>
                 </div>
                 <p style="margin-bottom: 4px; font-size: 0.88rem;">
-                  <strong>Formula:</strong> ${rec.true_base} True Base <span style="color:#777;">(ESPN ${rec.espn_proj} / L2W ${rec.recent_avg})</span> 
+                  <strong>Formula:</strong> ${rec.true_base} True Base <span style="color:#777;">(ESPN ${rec.espn_proj} / Season Avg ${rec.recent_avg})</span> 
                   ${schemeSign} Scheme ${ytSign} YT
                 </p>
                 <p style="margin-bottom: 8px; font-size: 0.88rem;">
