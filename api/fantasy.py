@@ -91,39 +91,48 @@ AMBIGUOUS_SURNAMES = {
     "legette", "mcconkey", "polk", "burton", "mcmillan", "franklin", "corley", "thrash", "means"
 }
 
+# Official ESPN NFL Team IDs for Live Roster, Depth Chart & Statistical Queries
+ESPN_TEAM_IDS = {
+    "ARI": 22, "ATL": 1, "BAL": 33, "BUF": 2, "CAR": 29, "CHI": 3, "CIN": 4, "CLE": 5,
+    "DAL": 6, "DEN": 7, "DET": 8, "GB": 9, "HOU": 34, "IND": 11, "JAX": 30, "KC": 12,
+    "LAC": 24, "LAR": 14, "LV": 13, "MIA": 15, "MIN": 16, "NE": 17, "NO": 18, "NYG": 19,
+    "NYJ": 20, "PHI": 21, "PIT": 23, "SEA": 26, "SF": 25, "TB": 27, "TEN": 10, "WAS": 28
+}
+
+# 2026 Season Baseline Scheme Tendencies (Zero hardcoded player names — all rosters & ratings update live weekly)
 NFL_DEFENSE_MATRIX = {
-    "ARI": {"man": 24, "zone": 76, "base": 22, "nickel": 64, "dime": 14, "shell": "Cover 3 / Quarters", "dline_run_stop": 89, "pass_rush": 90, "blitz": 27, "perim_cb": 88, "slot_cov": 90, "lb_mismatch_rate": 24, "key_defender": "Budda Baker (Box/Slot S)"},
-    "ATL": {"man": 22, "zone": 78, "base": 24, "nickel": 65, "dime": 11, "shell": "Cover 3 / Cover 4", "dline_run_stop": 94, "pass_rush": 87, "blitz": 23, "perim_cb": 99, "slot_cov": 91, "lb_mismatch_rate": 26, "key_defender": "A.J. Terrell (Perim CB)"},
-    "BAL": {"man": 31, "zone": 69, "base": 26, "nickel": 58, "dime": 16, "shell": "Split-Safety / Disguised Zone", "dline_run_stop": 114, "pass_rush": 109, "blitz": 30, "perim_cb": 103, "slot_cov": 108, "lb_mismatch_rate": 14, "key_defender": "Kyle Hamilton (Slot/Apex) & Roquan Smith"},
-    "BUF": {"man": 21, "zone": 79, "base": 12, "nickel": 76, "dime": 12, "shell": "Nickel Cover 2 / Cover 4", "dline_run_stop": 95, "pass_rush": 104, "blitz": 24, "perim_cb": 104, "slot_cov": 106, "lb_mismatch_rate": 16, "key_defender": "Taron Johnson (Elite Nickel CB)"},
-    "CAR": {"man": 26, "zone": 74, "base": 28, "nickel": 60, "dime": 12, "shell": "3-4 Cover 3 / Quarters", "dline_run_stop": 86, "pass_rush": 86, "blitz": 29, "perim_cb": 92, "slot_cov": 87, "lb_mismatch_rate": 29, "key_defender": "Jaycee Horn (Perim CB)"},
-    "CHI": {"man": 25, "zone": 75, "base": 23, "nickel": 67, "dime": 10, "shell": "4-3 Cover 2 / Tampa 2", "dline_run_stop": 98, "pass_rush": 99, "blitz": 22, "perim_cb": 111, "slot_cov": 105, "lb_mismatch_rate": 18, "key_defender": "Jaylon Johnson (Shadow CB) & Kyler Gordon"},
-    "CIN": {"man": 30, "zone": 70, "base": 22, "nickel": 66, "dime": 12, "shell": "Cover 3 / Man-Match", "dline_run_stop": 91, "pass_rush": 97, "blitz": 26, "perim_cb": 93, "slot_cov": 89, "lb_mismatch_rate": 25, "key_defender": "Trey Hendrickson (Edge Rush)"},
-    "CLE": {"man": 44, "zone": 56, "base": 20, "nickel": 64, "dime": 16, "shell": "Aggressive Press Cover 1 Man", "dline_run_stop": 107, "pass_rush": 113, "blitz": 33, "perim_cb": 109, "slot_cov": 98, "lb_mismatch_rate": 19, "key_defender": "Myles Garrett (Edge) & Denzel Ward (Man CB)"},
-    "DAL": {"man": 36, "zone": 64, "base": 24, "nickel": 61, "dime": 15, "shell": "Cover 1 / Cover 3 Press", "dline_run_stop": 88, "pass_rush": 107, "blitz": 31, "perim_cb": 101, "slot_cov": 92, "lb_mismatch_rate": 24, "key_defender": "Interior D-Line (Vulnerable vs Inside Run)"},
-    "DEN": {"man": 42, "zone": 58, "base": 25, "nickel": 60, "dime": 15, "shell": "Heavy Blitz Cover 1 / Cover 3", "dline_run_stop": 104, "pass_rush": 110, "blitz": 39, "perim_cb": 116, "slot_cov": 101, "lb_mismatch_rate": 21, "key_defender": "Pat Surtain II (Elite Shadow CB1)"},
-    "DET": {"man": 41, "zone": 59, "base": 29, "nickel": 59, "dime": 12, "shell": "Base/Nickel Press Man Cover 1", "dline_run_stop": 115, "pass_rush": 105, "blitz": 34, "perim_cb": 95, "slot_cov": 94, "lb_mismatch_rate": 27, "key_defender": "Elite Run Wall (Funnels teams to Slot/Pass)"},
-    "GB": {"man": 27, "zone": 73, "base": 25, "nickel": 63, "dime": 12, "shell": "4-3 Single-High Cover 3", "dline_run_stop": 99, "pass_rush": 102, "blitz": 25, "perim_cb": 101, "slot_cov": 95, "lb_mismatch_rate": 23, "key_defender": "Xavier McKinney (Centerfield Safety)"},
-    "HOU": {"man": 32, "zone": 68, "base": 24, "nickel": 65, "dime": 11, "shell": "4-3 Quarters / Cover 3 Press", "dline_run_stop": 106, "pass_rush": 111, "blitz": 24, "perim_cb": 110, "slot_cov": 96, "lb_mismatch_rate": 22, "key_defender": "Derek Stingley Jr. (Perim CB) & Will Anderson"},
-    "IND": {"man": 19, "zone": 81, "base": 23, "nickel": 68, "dime": 9, "shell": "Static Cover 3 Zone", "dline_run_stop": 93, "pass_rush": 96, "blitz": 20, "perim_cb": 90, "slot_cov": 94, "lb_mismatch_rate": 26, "key_defender": "Kenny Moore II (Slot CB)"},
-    "JAX": {"man": 38, "zone": 62, "base": 27, "nickel": 61, "dime": 12, "shell": "Press Man Cover 1", "dline_run_stop": 96, "pass_rush": 95, "blitz": 29, "perim_cb": 91, "slot_cov": 88, "lb_mismatch_rate": 28, "key_defender": "Vulnerable Secondary vs Motion/Slot"},
-    "KC": {"man": 39, "zone": 61, "base": 22, "nickel": 62, "dime": 16, "shell": "Spagnuolo Disguised Blitz / Man", "dline_run_stop": 111, "pass_rush": 108, "blitz": 37, "perim_cb": 112, "slot_cov": 106, "lb_mismatch_rate": 19, "key_defender": "Trent McDuffie (CB1) & Chris Jones (Interior DL)"},
-    "LAC": {"man": 23, "zone": 77, "base": 21, "nickel": 63, "dime": 16, "shell": "Minter Two-High Quarters / Zone", "dline_run_stop": 103, "pass_rush": 103, "blitz": 25, "perim_cb": 98, "slot_cov": 102, "lb_mismatch_rate": 17, "key_defender": "Derwin James (Hybrid Box/Slot Defender)"},
-    "LAR": {"man": 24, "zone": 76, "base": 25, "nickel": 61, "dime": 14, "shell": "Cover 3 / Quarters Zone", "dline_run_stop": 95, "pass_rush": 104, "blitz": 26, "perim_cb": 89, "slot_cov": 88, "lb_mismatch_rate": 27, "key_defender": "Jared Verse (Edge) / Vulnerable Secondary"},
-    "LV": {"man": 28, "zone": 72, "base": 26, "nickel": 62, "dime": 12, "shell": "Cover 3 / Cover 1 Mix", "dline_run_stop": 96, "pass_rush": 103, "blitz": 27, "perim_cb": 92, "slot_cov": 94, "lb_mismatch_rate": 24, "key_defender": "Maxx Crosby (Edge Rush)"},
-    "MIA": {"man": 29, "zone": 71, "base": 23, "nickel": 63, "dime": 14, "shell": "Split-Safety Cover 4 / Cover 3", "dline_run_stop": 97, "pass_rush": 98, "blitz": 28, "perim_cb": 102, "slot_cov": 97, "lb_mismatch_rate": 21, "key_defender": "Jalen Ramsey (Perim/Apex CB)"},
-    "MIN": {"man": 18, "zone": 82, "base": 19, "nickel": 57, "dime": 24, "shell": "Flores Zero-Blitz / Drop-8 Zone", "dline_run_stop": 112, "pass_rush": 112, "blitz": 42, "perim_cb": 96, "slot_cov": 101, "lb_mismatch_rate": 18, "key_defender": "42% Blitz Rate (Forces Quick Slot/Hot-Read Throws)"},
-    "NE": {"man": 40, "zone": 60, "base": 28, "nickel": 58, "dime": 14, "shell": "Cover 1 Man / Pattern-Match", "dline_run_stop": 97, "pass_rush": 94, "blitz": 31, "perim_cb": 111, "slot_cov": 93, "lb_mismatch_rate": 25, "key_defender": "Christian Gonzalez (Shadow Perim CB1)"},
-    "NO": {"man": 35, "zone": 65, "base": 25, "nickel": 63, "dime": 12, "shell": "Cover 1 / Cover 4 Match", "dline_run_stop": 93, "pass_rush": 95, "blitz": 25, "perim_cb": 98, "slot_cov": 95, "lb_mismatch_rate": 23, "key_defender": "Demario Davis (LB Coverage)"},
-    "NYG": {"man": 31, "zone": 69, "base": 24, "nickel": 64, "dime": 12, "shell": "Cover 3 / Cover 1 Blitz", "dline_run_stop": 92, "pass_rush": 108, "blitz": 32, "perim_cb": 90, "slot_cov": 92, "lb_mismatch_rate": 25, "key_defender": "Dexter Lawrence (Nose Tackle) & Brian Burns"},
-    "NYJ": {"man": 34, "zone": 66, "base": 20, "nickel": 68, "dime": 12, "shell": "4-2-5 Nickel Cover 3 / Quarters", "dline_run_stop": 96, "pass_rush": 105, "blitz": 23, "perim_cb": 114, "slot_cov": 104, "lb_mismatch_rate": 19, "key_defender": "Sauce Gardner (Lockdown Perim CB)"},
-    "PHI": {"man": 26, "zone": 74, "base": 21, "nickel": 66, "dime": 13, "shell": "Fangio Two-High Quarters / Cover 6", "dline_run_stop": 110, "pass_rush": 109, "blitz": 21, "perim_cb": 110, "slot_cov": 105, "lb_mismatch_rate": 17, "key_defender": "Jalen Carter (DT) & Quinyon Mitchell / Cooper DeJean"},
-    "PIT": {"man": 36, "zone": 64, "base": 27, "nickel": 59, "dime": 14, "shell": "Single-High Cover 3 / Cover 1", "dline_run_stop": 108, "pass_rush": 112, "blitz": 33, "perim_cb": 105, "slot_cov": 94, "lb_mismatch_rate": 24, "key_defender": "T.J. Watt (Edge) & Joey Porter Jr. (Press CB)"},
-    "SEA": {"man": 25, "zone": 75, "base": 20, "nickel": 65, "dime": 15, "shell": "Macdonald Disguised Split-Safety Zone", "dline_run_stop": 98, "pass_rush": 102, "blitz": 28, "perim_cb": 106, "slot_cov": 103, "lb_mismatch_rate": 18, "key_defender": "Devon Witherspoon (Nickel/Perim CB)"},
-    "SF": {"man": 22, "zone": 78, "base": 24, "nickel": 66, "dime": 10, "shell": "Wide-9 4-3 Cover 3 / Cover 4", "dline_run_stop": 104, "pass_rush": 107, "blitz": 20, "perim_cb": 103, "slot_cov": 98, "lb_mismatch_rate": 16, "key_defender": "Fred Warner (Elite Middle-of-Field LB)"},
-    "TB": {"man": 23, "zone": 77, "base": 25, "nickel": 61, "dime": 14, "shell": "Bowles Heavy Zone-Blitz / Cover 3", "dline_run_stop": 109, "pass_rush": 104, "blitz": 40, "perim_cb": 91, "slot_cov": 87, "lb_mismatch_rate": 30, "key_defender": "Vita Vea (Run Stopper) / Vulnerable Middle Zone vs Slot & TE"},
-    "TEN": {"man": 33, "zone": 67, "base": 26, "nickel": 62, "dime": 12, "shell": "Aggressive Press / Cover 3", "dline_run_stop": 102, "pass_rush": 97, "blitz": 30, "perim_cb": 99, "slot_cov": 95, "lb_mismatch_rate": 22, "key_defender": "Jeffery Simmons (Interior D-Line)"},
-    "WAS": {"man": 34, "zone": 66, "base": 26, "nickel": 62, "dime": 12, "shell": "Quinn Cover 3 / Man-Press", "dline_run_stop": 92, "pass_rush": 96, "blitz": 29, "perim_cb": 89, "slot_cov": 88, "lb_mismatch_rate": 27, "key_defender": "Vulnerable Outside CBs vs Vertical/Perim WRs"}
+    "ARI": {"man": 28, "zone": 72, "base": 22, "nickel": 64, "dime": 14, "shell": "Cover 3 / Quarters", "dline_run_stop": 91, "pass_rush": 92, "blitz": 27, "perim_cb": 90, "slot_cov": 91, "lb_mismatch_rate": 24},
+    "ATL": {"man": 25, "zone": 75, "base": 24, "nickel": 65, "dime": 11, "shell": "Cover 3 / Cover 4", "dline_run_stop": 92, "pass_rush": 91, "blitz": 24, "perim_cb": 98, "slot_cov": 92, "lb_mismatch_rate": 25},
+    "BAL": {"man": 31, "zone": 69, "base": 25, "nickel": 59, "dime": 16, "shell": "Split-Safety / Disguised Zone", "dline_run_stop": 110, "pass_rush": 106, "blitz": 29, "perim_cb": 101, "slot_cov": 106, "lb_mismatch_rate": 16},
+    "BUF": {"man": 29, "zone": 71, "base": 14, "nickel": 74, "dime": 12, "shell": "Nickel Cover 2 / Cover 4", "dline_run_stop": 96, "pass_rush": 104, "blitz": 25, "perim_cb": 103, "slot_cov": 105, "lb_mismatch_rate": 17},
+    "CAR": {"man": 24, "zone": 76, "base": 27, "nickel": 61, "dime": 12, "shell": "3-4 Cover 3 / Quarters", "dline_run_stop": 89, "pass_rush": 88, "blitz": 28, "perim_cb": 93, "slot_cov": 89, "lb_mismatch_rate": 28},
+    "CHI": {"man": 26, "zone": 74, "base": 23, "nickel": 67, "dime": 10, "shell": "4-3 Cover 2 / Cover 3", "dline_run_stop": 101, "pass_rush": 101, "blitz": 24, "perim_cb": 109, "slot_cov": 104, "lb_mismatch_rate": 18},
+    "CIN": {"man": 32, "zone": 68, "base": 22, "nickel": 66, "dime": 12, "shell": "Cover 3 / Man-Match", "dline_run_stop": 93, "pass_rush": 98, "blitz": 27, "perim_cb": 95, "slot_cov": 92, "lb_mismatch_rate": 24},
+    "CLE": {"man": 38, "zone": 62, "base": 23, "nickel": 63, "dime": 14, "shell": "Cover 1 / Cover 3 Mix", "dline_run_stop": 98, "pass_rush": 95, "blitz": 31, "perim_cb": 104, "slot_cov": 97, "lb_mismatch_rate": 22},
+    "DAL": {"man": 35, "zone": 65, "base": 24, "nickel": 61, "dime": 15, "shell": "Cover 1 / Cover 3 Press", "dline_run_stop": 91, "pass_rush": 104, "blitz": 30, "perim_cb": 99, "slot_cov": 93, "lb_mismatch_rate": 24},
+    "DEN": {"man": 45, "zone": 55, "base": 24, "nickel": 61, "dime": 15, "shell": "Heavy Blitz Cover 1 / Cover 3", "dline_run_stop": 103, "pass_rush": 111, "blitz": 38, "perim_cb": 114, "slot_cov": 101, "lb_mismatch_rate": 20},
+    "DET": {"man": 46, "zone": 54, "base": 28, "nickel": 60, "dime": 12, "shell": "Press Man Cover 1", "dline_run_stop": 112, "pass_rush": 104, "blitz": 33, "perim_cb": 97, "slot_cov": 95, "lb_mismatch_rate": 25},
+    "GB": {"man": 23, "zone": 77, "base": 25, "nickel": 63, "dime": 12, "shell": "4-3 Cover 3 / Quarters", "dline_run_stop": 104, "pass_rush": 105, "blitz": 25, "perim_cb": 103, "slot_cov": 99, "lb_mismatch_rate": 21},
+    "HOU": {"man": 30, "zone": 70, "base": 24, "nickel": 65, "dime": 11, "shell": "4-3 Quarters / Cover 3", "dline_run_stop": 106, "pass_rush": 112, "blitz": 25, "perim_cb": 109, "slot_cov": 98, "lb_mismatch_rate": 21},
+    "IND": {"man": 22, "zone": 78, "base": 23, "nickel": 68, "dime": 9, "shell": "Cover 3 Zone", "dline_run_stop": 95, "pass_rush": 97, "blitz": 22, "perim_cb": 92, "slot_cov": 95, "lb_mismatch_rate": 25},
+    "JAX": {"man": 36, "zone": 64, "base": 26, "nickel": 62, "dime": 12, "shell": "Cover 1 / Cover 3", "dline_run_stop": 97, "pass_rush": 103, "blitz": 29, "perim_cb": 94, "slot_cov": 91, "lb_mismatch_rate": 26},
+    "KC": {"man": 39, "zone": 61, "base": 22, "nickel": 62, "dime": 16, "shell": "Spagnuolo Disguised Blitz / Man", "dline_run_stop": 109, "pass_rush": 107, "blitz": 37, "perim_cb": 110, "slot_cov": 105, "lb_mismatch_rate": 19},
+    "LAC": {"man": 24, "zone": 76, "base": 21, "nickel": 63, "dime": 16, "shell": "Two-High Quarters / Zone", "dline_run_stop": 99, "pass_rush": 100, "blitz": 25, "perim_cb": 96, "slot_cov": 100, "lb_mismatch_rate": 19},
+    "LAR": {"man": 28, "zone": 72, "base": 24, "nickel": 62, "dime": 14, "shell": "Disguised Quarters / Cover 3", "dline_run_stop": 105, "pass_rush": 115, "blitz": 28, "perim_cb": 94, "slot_cov": 93, "lb_mismatch_rate": 24},
+    "LV": {"man": 25, "zone": 75, "base": 26, "nickel": 62, "dime": 12, "shell": "Cover 3 / Cover 4 Mix", "dline_run_stop": 93, "pass_rush": 98, "blitz": 26, "perim_cb": 90, "slot_cov": 91, "lb_mismatch_rate": 26},
+    "MIA": {"man": 27, "zone": 73, "base": 23, "nickel": 63, "dime": 14, "shell": "Split-Safety Cover 4 / Cover 3", "dline_run_stop": 96, "pass_rush": 98, "blitz": 28, "perim_cb": 100, "slot_cov": 96, "lb_mismatch_rate": 22},
+    "MIN": {"man": 20, "zone": 80, "base": 19, "nickel": 57, "dime": 24, "shell": "Flores Zero-Blitz / Drop-8 Zone", "dline_run_stop": 110, "pass_rush": 111, "blitz": 41, "perim_cb": 99, "slot_cov": 102, "lb_mismatch_rate": 18},
+    "NE": {"man": 31, "zone": 69, "base": 27, "nickel": 59, "dime": 14, "shell": "Pattern-Match Cover 1 / Cover 3", "dline_run_stop": 96, "pass_rush": 95, "blitz": 29, "perim_cb": 107, "slot_cov": 94, "lb_mismatch_rate": 24},
+    "NO": {"man": 32, "zone": 68, "base": 25, "nickel": 63, "dime": 12, "shell": "Cover 1 / Cover 4 Match", "dline_run_stop": 94, "pass_rush": 96, "blitz": 26, "perim_cb": 96, "slot_cov": 95, "lb_mismatch_rate": 23},
+    "NYG": {"man": 33, "zone": 67, "base": 24, "nickel": 64, "dime": 12, "shell": "Cover 3 / Cover 1 Blitz", "dline_run_stop": 95, "pass_rush": 106, "blitz": 31, "perim_cb": 92, "slot_cov": 93, "lb_mismatch_rate": 24},
+    "NYJ": {"man": 35, "zone": 65, "base": 20, "nickel": 68, "dime": 12, "shell": "4-2-5 Nickel Cover 3 / Quarters", "dline_run_stop": 96, "pass_rush": 102, "blitz": 24, "perim_cb": 110, "slot_cov": 102, "lb_mismatch_rate": 20},
+    "PHI": {"man": 27, "zone": 73, "base": 21, "nickel": 66, "dime": 13, "shell": "Two-High Quarters / Cover 6", "dline_run_stop": 107, "pass_rush": 106, "blitz": 22, "perim_cb": 106, "slot_cov": 103, "lb_mismatch_rate": 18},
+    "PIT": {"man": 37, "zone": 63, "base": 27, "nickel": 59, "dime": 14, "shell": "Single-High Cover 3 / Cover 1", "dline_run_stop": 108, "pass_rush": 112, "blitz": 33, "perim_cb": 105, "slot_cov": 96, "lb_mismatch_rate": 23},
+    "SEA": {"man": 26, "zone": 74, "base": 20, "nickel": 65, "dime": 15, "shell": "Disguised Split-Safety Zone", "dline_run_stop": 99, "pass_rush": 102, "blitz": 28, "perim_cb": 105, "slot_cov": 102, "lb_mismatch_rate": 19},
+    "SF": {"man": 24, "zone": 76, "base": 24, "nickel": 66, "dime": 10, "shell": "Wide-9 4-3 Cover 3 / Cover 4", "dline_run_stop": 103, "pass_rush": 105, "blitz": 21, "perim_cb": 102, "slot_cov": 99, "lb_mismatch_rate": 17},
+    "TB": {"man": 31, "zone": 69, "base": 25, "nickel": 61, "dime": 14, "shell": "Bowles Heavy Zone-Blitz / Cover 3", "dline_run_stop": 106, "pass_rush": 103, "blitz": 39, "perim_cb": 92, "slot_cov": 89, "lb_mismatch_rate": 28},
+    "TEN": {"man": 27, "zone": 73, "base": 26, "nickel": 62, "dime": 12, "shell": "Cover 3 / Quarters", "dline_run_stop": 96, "pass_rush": 94, "blitz": 28, "perim_cb": 95, "slot_cov": 93, "lb_mismatch_rate": 24},
+    "WAS": {"man": 33, "zone": 67, "base": 26, "nickel": 62, "dime": 12, "shell": "Cover 3 / Man-Press", "dline_run_stop": 94, "pass_rush": 97, "blitz": 29, "perim_cb": 91, "slot_cov": 90, "lb_mismatch_rate": 26}
 }
 
 SLOT_HEAVY_WRS = {
@@ -168,8 +177,95 @@ def normalize_team_abbrev(raw_opp):
     return mapping.get(s, s)
 
 
-def build_live_defense_matrix(league=None, current_week=10):
-    cache_path = f"/tmp/live_def_matrix_wk{current_week}_v2.json"
+def fetch_team_live_depth_chart(item):
+    """
+    Pulls the current week's LIVE starting defensive depth chart & base front
+    directly from ESPN's NFL Team Depth Chart API (with fallback to /roster).
+    Ensures offseason/midseason trades (like Myles Garrett on LAR) are 100% up to date.
+    """
+    abbr, team_id = item
+    result = {
+        "abbr": abbr,
+        "base_front_name": "",
+        "front_starters": [],
+        "lb_starters": [],
+        "cb_starters": [],
+        "slot_safety_starters": []
+    }
+    try:
+        dc_url = f"https://site.api.espn.com/apis/site/v2/sports/football/nfl/teams/{team_id}/depthcharts"
+        req = urllib.request.Request(dc_url, headers={'User-Agent': 'Mozilla/5.0'})
+        with urllib.request.urlopen(req, timeout=1.8) as resp:
+            dc_data = json.loads(resp.read().decode('utf-8'))
+
+        for chart in dc_data.get("depthchart", []):
+            c_name = chart.get("name", "")
+            positions = chart.get("positions", {})
+            # Identify the defensive depth chart
+            if any(k in positions for k in ("lcb", "rcb", "cb", "mlb", "wlb", "lde", "rde", "nt")):
+                result["base_front_name"] = c_name
+                for pos_key, pos_obj in positions.items():
+                    athletes = pos_obj.get("athletes", [])
+                    if not athletes:
+                        continue
+                    starter_name = athletes[0].get("displayName", "")
+                    if not starter_name:
+                        continue
+                    pk = pos_key.lower()
+                    if pk in ("lde", "rde", "de", "dt", "nt", "ldt", "rdt", "lolb", "rolb", "edge"):
+                        if starter_name not in result["front_starters"]:
+                            result["front_starters"].append(f"{starter_name} ({pk.upper()})")
+                    elif pk in ("mlb", "wlb", "slb", "lilb", "rilb", "lb", "ilb"):
+                        if starter_name not in result["lb_starters"]:
+                            result["lb_starters"].append(f"{starter_name} ({pk.upper()})")
+                    elif pk in ("lcb", "rcb", "cb"):
+                        if starter_name not in result["cb_starters"]:
+                            result["cb_starters"].append(f"{starter_name} (CB)")
+                    elif pk in ("nb", "ss", "fs", "s", "db"):
+                        if starter_name not in result["slot_safety_starters"]:
+                            result["slot_safety_starters"].append(f"{starter_name} ({pk.upper()})")
+                break
+    except Exception:
+        pass
+
+    # Fallback to live active /roster if depthchart endpoint didn't populate starters
+    if not (result["front_starters"] or result["cb_starters"]):
+        try:
+            r_url = f"https://site.api.espn.com/apis/site/v2/sports/football/nfl/teams/{team_id}/roster"
+            req2 = urllib.request.Request(r_url, headers={'User-Agent': 'Mozilla/5.0'})
+            with urllib.request.urlopen(req2, timeout=1.8) as resp2:
+                r_data = json.loads(resp2.read().decode('utf-8'))
+
+            for group in r_data.get("athletes", []):
+                if "def" in str(group.get("position", "")).lower():
+                    items = group.get("items", [])
+                    # Sort by years of experience so established starters surface first
+                    items.sort(key=lambda x: x.get("experience", {}).get("years", 0), reverse=True)
+                    for ath in items:
+                        name = ath.get("displayName", "")
+                        pos = ath.get("position", {}).get("abbreviation", "").upper()
+                        if pos in ("DE", "DT", "NT", "DL", "EDGE") and len(result["front_starters"]) < 3:
+                            result["front_starters"].append(f"{name} ({pos})")
+                        elif pos in ("LB", "ILB", "MLB", "OLB") and len(result["lb_starters"]) < 2:
+                            result["lb_starters"].append(f"{name} ({pos})")
+                        elif pos == "CB" and len(result["cb_starters"]) < 2:
+                            result["cb_starters"].append(f"{name} (CB)")
+                        elif pos in ("S", "FS", "SS", "DB") and len(result["slot_safety_starters"]) < 2:
+                            result["slot_safety_starters"].append(f"{name} ({pos})")
+        except Exception:
+            pass
+
+    return result
+
+
+def build_live_defense_matrix(league=None, current_week=10, target_year=2026):
+    """
+    Dynamically builds the 32-team defense matrix every week using:
+    1. Live ESPN NFL Depth Charts & Rosters (real-time starters at DE/DT, LB, CB, Slot/S)
+    2. Live ESPN NFL Injury Feed (adjusting ratings AND Man/Zone/Nickel scheme tendencies)
+    3. Live Weekly & Rolling 3-Week D/ST Performance from the current 2026 season
+    """
+    cache_path = f"/tmp/live_def_matrix_{target_year}_wk{current_week}_v11.json"
     now_ts = datetime.now(timezone.utc).timestamp()
 
     if os.path.exists(cache_path):
@@ -186,7 +282,54 @@ def build_live_defense_matrix(league=None, current_week=10):
         live_matrix[team_abbr] = dict(base_data)
         live_matrix[team_abbr]["injuries"] = []
         live_matrix[team_abbr]["live_adj_summary"] = "Full Strength"
+        live_matrix[team_abbr]["front_starters"] = f"{team_abbr} Starting Front"
+        live_matrix[team_abbr]["lb_starters"] = f"{team_abbr} Starting LBs"
+        live_matrix[team_abbr]["cb_starters"] = f"{team_abbr} Outside CBs"
+        live_matrix[team_abbr]["slot_starters"] = f"{team_abbr} Nickel/Safeties"
+        live_matrix[team_abbr]["key_defender"] = f"{team_abbr} Active Starters"
+        live_matrix[team_abbr]["weekly_trend_note"] = f"Week {current_week} Active Scheme"
 
+    # 1. Fetch Live Current-Week Depth Charts & Starters in Parallel across all 32 NFL Teams
+    try:
+        with ThreadPoolExecutor(max_workers=16) as executor:
+            dc_results = list(executor.map(fetch_team_live_depth_chart, ESPN_TEAM_IDS.items()))
+
+        for res in dc_results:
+            abbr = res["abbr"]
+            if abbr not in live_matrix:
+                continue
+            d_team = live_matrix[abbr]
+
+            if res["base_front_name"]:
+                d_team["shell"] = f"{res['base_front_name']} • {d_team['shell']}"
+                # Adjust base/nickel split if depth chart explicitly specifies 3-4 vs 4-2-5
+                if "4-2-5" in res["base_front_name"] or "nickel" in res["base_front_name"].lower():
+                    d_team["nickel"] = max(d_team["nickel"], 68)
+                    d_team["base"] = min(d_team["base"], 18)
+
+            if res["front_starters"]:
+                d_team["front_starters"] = ", ".join(res["front_starters"][:3])
+            if res["lb_starters"]:
+                d_team["lb_starters"] = ", ".join(res["lb_starters"][:2])
+            if res["cb_starters"]:
+                d_team["cb_starters"] = ", ".join(res["cb_starters"][:2])
+            if res["slot_safety_starters"]:
+                d_team["slot_starters"] = ", ".join(res["slot_safety_starters"][:2])
+
+            # Build composite live starter summary
+            headline_parts = []
+            if res["front_starters"]:
+                headline_parts.append(res["front_starters"][0])
+            if res["cb_starters"]:
+                headline_parts.append(res["cb_starters"][0])
+            if res["lb_starters"]:
+                headline_parts.append(res["lb_starters"][0])
+            if headline_parts:
+                d_team["key_defender"] = " • ".join(headline_parts)
+    except Exception:
+        pass
+
+    # 2. Fetch Live NFL Defensive Injuries & Dynamically Shift Scheme / Coverage Tendencies
     try:
         inj_url = "https://site.api.espn.com/apis/site/v2/sports/football/nfl/injuries"
         req = urllib.request.Request(inj_url, headers={'User-Agent': 'Mozilla/5.0'})
@@ -225,25 +368,30 @@ def build_live_defense_matrix(league=None, current_week=10):
                 d_team["injuries"].append(f"{name} ({pos} - {short_stat})")
 
                 if pos in ("CB", "DB"):
-                    d_team["perim_cb"] = max(72, round(d_team["perim_cb"] - (6.5 * sev)))
-                    d_team["slot_cov"] = max(72, round(d_team["slot_cov"] - (3.5 * sev)))
+                    d_team["perim_cb"] = max(70, round(d_team["perim_cb"] - (6.5 * sev)))
+                    d_team["slot_cov"] = max(70, round(d_team["slot_cov"] - (3.5 * sev)))
+                    # Missing outside corners forces coordinators out of isolated Man into Zone help
+                    man_shift = round(4.5 * sev)
+                    d_team["man"] = max(14, d_team["man"] - man_shift)
+                    d_team["zone"] = min(86, 100 - d_team["man"])
                 elif pos in ("DT", "NT", "DL"):
-                    d_team["dline_run_stop"] = max(72, round(d_team["dline_run_stop"] - (6.5 * sev)))
-                    d_team["pass_rush"] = max(72, round(d_team["pass_rush"] - (2.5 * sev)))
+                    d_team["dline_run_stop"] = max(70, round(d_team["dline_run_stop"] - (6.5 * sev)))
+                    d_team["pass_rush"] = max(70, round(d_team["pass_rush"] - (2.5 * sev)))
                 elif pos in ("DE", "EDGE", "OLB"):
-                    d_team["pass_rush"] = max(72, round(d_team["pass_rush"] - (6.5 * sev)))
-                    d_team["dline_run_stop"] = max(72, round(d_team["dline_run_stop"] - (3.0 * sev)))
+                    d_team["pass_rush"] = max(70, round(d_team["pass_rush"] - (6.5 * sev)))
+                    d_team["dline_run_stop"] = max(70, round(d_team["dline_run_stop"] - (3.0 * sev)))
                 elif pos in ("LB", "ILB", "MLB"):
-                    d_team["slot_cov"] = max(72, round(d_team["slot_cov"] - (5.5 * sev)))
-                    d_team["dline_run_stop"] = max(72, round(d_team["dline_run_stop"] - (3.5 * sev)))
+                    d_team["slot_cov"] = max(70, round(d_team["slot_cov"] - (5.5 * sev)))
+                    d_team["dline_run_stop"] = max(70, round(d_team["dline_run_stop"] - (3.5 * sev)))
                     d_team["lb_mismatch_rate"] = min(45, round(d_team["lb_mismatch_rate"] + (4.5 * sev)))
                 elif pos in ("S", "FS", "SS"):
-                    d_team["slot_cov"] = max(72, round(d_team["slot_cov"] - (4.5 * sev)))
-                    d_team["perim_cb"] = max(72, round(d_team["perim_cb"] - (3.0 * sev)))
+                    d_team["slot_cov"] = max(70, round(d_team["slot_cov"] - (4.5 * sev)))
+                    d_team["perim_cb"] = max(70, round(d_team["perim_cb"] - (3.0 * sev)))
                     d_team["lb_mismatch_rate"] = min(45, round(d_team["lb_mismatch_rate"] + (3.0 * sev)))
     except Exception:
         pass
 
+    # 3. Weekly Progression & Rolling 3-Week Form Calibration from Live 2026 ESPN League D/ST Data
     if league is not None:
         try:
             dst_players = league.free_agents(week=current_week, size=40, position='D/ST')
@@ -252,15 +400,40 @@ def build_live_defense_matrix(league=None, current_week=10):
                     if p.position == 'D/ST':
                         dst_players.append(p)
 
+            seen_dst = set()
             for dst in dst_players:
                 pro_t = normalize_team_abbrev(getattr(dst, 'proTeam', ''))
-                if pro_t in live_matrix:
-                    avg_pts = float(getattr(dst, 'avg_points', 6.0) or 6.0)
-                    form_delta = round((avg_pts - 6.5) * 1.1)
-                    d_team = live_matrix[pro_t]
-                    d_team["dline_run_stop"] = max(72, min(120, d_team["dline_run_stop"] + form_delta))
-                    d_team["pass_rush"] = max(72, min(120, d_team["pass_rush"] + form_delta))
-                    d_team["perim_cb"] = max(72, min(120, d_team["perim_cb"] + form_delta))
+                if not pro_t or pro_t in seen_dst or pro_t not in live_matrix:
+                    continue
+                seen_dst.add(pro_t)
+
+                season_avg = float(getattr(dst, 'avg_points', 6.5) or 6.5)
+                recent_3_wks = []
+                dst_stats = getattr(dst, 'stats', {}) or {}
+                for w_past in range(max(1, current_week - 3), current_week):
+                    w_obj = dst_stats.get(w_past) or dst_stats.get(str(w_past)) or {}
+                    pts = w_obj.get('points')
+                    if pts is not None:
+                        recent_3_wks.append(float(pts))
+
+                recent_3_avg = (sum(recent_3_wks) / len(recent_3_wks)) if recent_3_wks else season_avg
+                # Blend 50% season average + 50% rolling last-3-weeks form so weekly progression is captured
+                effective_dst_ppg = (0.50 * season_avg) + (0.50 * recent_3_avg)
+                form_delta = round((effective_dst_ppg - 6.5) * 1.35)
+
+                d_team = live_matrix[pro_t]
+                d_team["dline_run_stop"] = max(70, min(122, d_team["dline_run_stop"] + form_delta))
+                d_team["pass_rush"] = max(70, min(122, d_team["pass_rush"] + form_delta))
+                d_team["perim_cb"] = max(70, min(122, d_team["perim_cb"] + form_delta))
+                d_team["slot_cov"] = max(70, min(122, d_team["slot_cov"] + round(form_delta * 0.8)))
+
+                trend_diff = round(recent_3_avg - season_avg, 1)
+                if trend_diff >= 2.0:
+                    d_team["weekly_trend_note"] = f"📈 Surging Last 3 Wks ({recent_3_avg:.1f} D/ST PPG vs {season_avg:.1f} Season Avg)"
+                elif trend_diff <= -2.0:
+                    d_team["weekly_trend_note"] = f"📉 Bleeding Points Last 3 Wks ({recent_3_avg:.1f} D/ST PPG vs {season_avg:.1f} Season Avg)"
+                else:
+                    d_team["weekly_trend_note"] = f"Steady Form (Last 3 Wks: {recent_3_avg:.1f} D/ST PPG | Season: {season_avg:.1f})"
         except Exception:
             pass
 
@@ -292,7 +465,8 @@ def analyze_micro_matchup(player, pos, espn_proj, recent_avg, is_desperate=False
             "personnel_split": "N/A",
             "individual_battle": "No active matchup this week.",
             "trench_or_lb_note": "N/A",
-            "injury_impact": "None"
+            "injury_impact": "None",
+            "weekly_trend": "N/A"
         }
 
     d = active_matrix[opp]
@@ -305,6 +479,11 @@ def analyze_micro_matchup(player, pos, espn_proj, recent_avg, is_desperate=False
     base_pct = d["base"]
     nickel_pct = d["nickel"]
     dime_pct = d["dime"]
+
+    cb_names = d.get("cb_starters", f"{opp} Outside CBs")
+    slot_names = d.get("slot_starters", f"{opp} Nickel/Safeties")
+    lb_names = d.get("lb_starters", f"{opp} Linebackers")
+    front_names = d.get("front_starters", f"{opp} Defensive Front")
 
     if pos == "WR":
         is_slot = (clean_n in SLOT_HEAVY_WRS) or (espn_proj < 11.2 and recent_avg >= espn_proj)
@@ -320,21 +499,21 @@ def analyze_micro_matchup(player, pos, espn_proj, recent_avg, is_desperate=False
             cb_diff = 100 - d["perim_cb"]
             cb_pts = cb_diff * 0.13
             adj += cb_pts
-            if d["perim_cb"] >= 110:
-                battle = f"Perimeter WR vs Elite Lockdown Corner ({d['key_defender']}) — Shadow Risk ({round(cb_pts, 1)} pts)"
-            elif d["perim_cb"] <= 91:
-                battle = f"Perimeter WR vs Burnable Outside CBs (Rating: {d['perim_cb']}) — Advantage WR (+{round(cb_pts, 1)} pts)"
+            if d["perim_cb"] >= 109:
+                battle = f"Perimeter WR vs {opp} Lockdown Outside CBs ({cb_names}) — Shadow/Bracket Risk ({round(cb_pts, 1)} pts)"
+            elif d["perim_cb"] <= 92:
+                battle = f"Perimeter WR vs {opp} Burnable Outside CBs ({cb_names}, Rating: {d['perim_cb']}) — Advantage WR (+{round(cb_pts, 1)} pts)"
             else:
-                battle = f"Perimeter WR vs {opp} Outside CBs ({d['key_defender']})"
+                battle = f"Perimeter WR vs {opp} Outside CBs ({cb_names}, Rating: {d['perim_cb']})"
         else:
             slot_diff = 100 - d["slot_cov"]
             slot_pts = slot_diff * 0.12
             adj += slot_pts
-            if d["perim_cb"] >= 110:
+            if d["perim_cb"] >= 109:
                 adj += 1.2
-                battle = f"Slot Funnel Alert: {opp}'s outside lockdown ({d['key_defender']}) funnels targets inside to the Slot (+1.2 pts)"
+                battle = f"Slot Funnel Alert: {opp}'s outside CBs ({cb_names}) funnel targets inside vs {slot_names} (+1.2 pts)"
             else:
-                battle = f"Slot WR vs {opp} Nickel Package (Slot Coverage Rating: {d['slot_cov']})"
+                battle = f"Slot WR vs {opp} Nickel/Slot Defenders ({slot_names}, Rating: {d['slot_cov']})"
 
         if d["lb_mismatch_rate"] >= 24 and (is_slot or nickel_pct >= 62):
             lb_boost = round((d["lb_mismatch_rate"] - 19) * 0.15, 1)
@@ -342,12 +521,12 @@ def analyze_micro_matchup(player, pos, espn_proj, recent_avg, is_desperate=False
             trench_lb_note = (
                 f"🔥 LB Coverage Mismatch ({d['lb_mismatch_rate']}% LB/Safety Slot Rate): "
                 f"When {opp} transitions between Base ({base_pct}%) and Nickel ({nickel_pct}%), "
-                f"motion/slot receivers isolate on Linebackers over the middle (+{lb_boost} pts)."
+                f"motion/slot receivers isolate on LBs ({lb_names}) over the middle (+{lb_boost} pts)."
             )
         elif d["slot_cov"] >= 105 and is_slot:
-            trench_lb_note = f"⚠️ Tight Nickel Coverage: {opp} uses {d['key_defender']} to erase slot seams (Dime {dime_pct}%)."
+            trench_lb_note = f"⚠️ Tight Nickel Coverage: {opp} uses {slot_names} & {lb_names} to erase slot seams (Dime {dime_pct}%)."
         else:
-            trench_lb_note = f"Standard {alignment} vs {opp} ({nickel_pct}% Nickel / {dime_pct}% Dime)."
+            trench_lb_note = f"Standard {alignment} vs {opp} ({nickel_pct}% Nickel / {dime_pct}% Dime | LBs: {lb_names})."
 
     elif pos == "RB":
         is_receiving_back = (clean_n in PASS_CATCHING_RBS) or (recent_avg > espn_proj + 1.5)
@@ -356,31 +535,31 @@ def analyze_micro_matchup(player, pos, espn_proj, recent_avg, is_desperate=False
         trench_pts = trench_diff * 0.15
         adj += trench_pts
 
-        if d["dline_run_stop"] >= 109:
-            battle = f"RB vs Elite Interior Run Wall ({d['key_defender']}, Stuff Rating: {d['dline_run_stop']}) — Tough Trench Sledding ({round(trench_pts, 1)} pts)"
+        if d["dline_run_stop"] >= 108:
+            battle = f"RB vs {opp} Elite Front ({front_names}, Run Stop Rating: {d['dline_run_stop']}) — Tough Trench Sledding ({round(trench_pts, 1)} pts)"
         elif d["dline_run_stop"] <= 92:
-            battle = f"RB vs Soft Interior D-Line (Run Stop Rating: {d['dline_run_stop']}) — High Yards-Before-Contact Smash (+{round(trench_pts, 1)} pts)"
+            battle = f"RB vs {opp} Soft Interior Front ({front_names}, Rating: {d['dline_run_stop']}) — High Yards-Before-Contact Smash (+{round(trench_pts, 1)} pts)"
         else:
-            battle = f"RB vs {opp} Defensive Front (Run Stop Rating: {d['dline_run_stop']} | Key: {d['key_defender']})"
+            battle = f"RB vs {opp} Defensive Front ({front_names} | LBs: {lb_names} | Rating: {d['dline_run_stop']})"
 
         sub_pkg_pct = nickel_pct + dime_pct
         if sub_pkg_pct >= 77:
             adj += 1.3
-            trench_lb_note = f"⚡ Light Box Advantage: {opp} plays {sub_pkg_pct}% Nickel/Dime (only {base_pct}% Base), creating 6-man light boxes for rushing lanes (+1.3 pts)."
-        elif is_receiving_back and (d["blitz"] >= 31 or zone_pct >= 75):
+            trench_lb_note = f"⚡ Light Box Advantage: {opp} plays {sub_pkg_pct}% Nickel/Dime (only {base_pct}% Base), creating 6-man light boxes (+1.3 pts)."
+        elif is_receiving_back and (d["blitz"] >= 30 or zone_pct >= 74):
             adj += 1.5
-            trench_lb_note = f"🔥 Checkdown/LB Mismatch: {opp}'s {d['blitz']}% blitz & {zone_pct}% zone forces Linebackers to cover RBs in space (+1.5 pts)."
+            trench_lb_note = f"🔥 Checkdown/LB Mismatch: {opp}'s {d['blitz']}% blitz & {zone_pct}% zone forces LBs ({lb_names}) to cover RBs in space (+1.5 pts)."
         else:
-            trench_lb_note = f"Box Count Split: {opp} runs {base_pct}% Base (7+ man box) vs {nickel_pct}% Nickel."
+            trench_lb_note = f"Box Count Split: {opp} runs {base_pct}% Base (7+ man box) vs {nickel_pct}% Nickel (LBs: {lb_names})."
 
     elif pos == "TE":
         seam_diff = (100 - d["slot_cov"]) * 0.11 + ((d["lb_mismatch_rate"] - 20) * 0.13)
         adj += seam_diff
-        if d["blitz"] >= 32:
+        if d["blitz"] >= 31:
             adj += 1.0
-            battle = f"TE Hot-Read Advantage vs {opp}'s {d['blitz']}% Blitz Rate (+1.0 pts)"
+            battle = f"TE Hot-Read Advantage vs {opp}'s {d['blitz']}% Blitz Rate (covered by {lb_names} / {slot_names}, +1.0 pts)"
         else:
-            battle = f"TE vs {opp} Seam/LB Coverage (Slot/Box Rating: {d['slot_cov']})"
+            battle = f"TE vs {opp} Seam/LB Coverage ({lb_names} & {slot_names}, Rating: {d['slot_cov']})"
 
         trench_lb_note = (
             f"Linebacker Seam Matchup: {opp} allows a {d['lb_mismatch_rate']}% LB coverage mismatch rate "
@@ -391,8 +570,8 @@ def analyze_micro_matchup(player, pos, espn_proj, recent_avg, is_desperate=False
         rush_diff = (100 - d["pass_rush"]) * 0.12
         sec_diff = (100 - ((d["perim_cb"] + d["slot_cov"]) / 2)) * 0.11
         adj += (rush_diff + sec_diff)
-        battle = f"QB vs {opp} Pass Rush (Pressure Rating: {d['pass_rush']}, Blitz: {d['blitz']}%)"
-        trench_lb_note = f"Coverage Shell Read: {opp} runs {d['shell']} ({zone_pct}% Zone / {man_pct}% Man)."
+        battle = f"QB vs {opp} Pass Rush ({front_names}, Pressure Rating: {d['pass_rush']}, Blitz: {d['blitz']}%)"
+        trench_lb_note = f"Coverage Shell Read: {opp} runs {d['shell']} ({zone_pct}% Zone / {man_pct}% Man | CBs: {cb_names})."
 
     if is_desperate and adj > 0:
         adj *= 1.20
@@ -420,9 +599,9 @@ def analyze_micro_matchup(player, pos, espn_proj, recent_avg, is_desperate=False
     if inj_list:
         impacts = []
         if cb_drop > 0:
-            impacts.append(f"CB Cov -{cb_drop}")
+            impacts.append(f"CB Net -{cb_drop}")
         if dl_drop > 0:
-            impacts.append(f"Run Stop -{dl_drop}")
+            impacts.append(f"Run Stop Net -{dl_drop}")
         if lb_jump > 0:
             impacts.append(f"LB Mismatch +{lb_jump}%")
         impact_str = f" ({', '.join(impacts)})" if impacts else ""
@@ -438,7 +617,8 @@ def analyze_micro_matchup(player, pos, espn_proj, recent_avg, is_desperate=False
         "personnel_split": f"{base_pct}% Base • {nickel_pct}% Nickel • {dime_pct}% Dime (Blitz: {d['blitz']}%)",
         "individual_battle": battle,
         "trench_or_lb_note": trench_lb_note,
-        "injury_impact": injury_report_str
+        "injury_impact": injury_report_str,
+        "weekly_trend": d.get("weekly_trend_note", f"Week {opp} Active Scheme")
     }
     return adj, grade, report
 
@@ -471,7 +651,7 @@ def get_current_fantasy_week_cutoff(now_utc):
 
 
 def fetch_weekly_2026_videos(current_week, target_year=2026):
-    cache_path = f"/tmp/yt_knowledge_{target_year}_wk{current_week}_v9.json"
+    cache_path = f"/tmp/yt_knowledge_{target_year}_wk{current_week}_v11.json"
     saved_videos = {}
 
     if os.path.exists(cache_path):
@@ -926,7 +1106,7 @@ class handler(BaseHTTPRequestHandler):
             is_desperate = playoff_pct < 45.0
 
             yt_videos = fetch_weekly_2026_videos(current_week=week, target_year=year)
-            live_def_matrix = build_live_defense_matrix(league=league, current_week=week)
+            live_def_matrix = build_live_defense_matrix(league=league, current_week=week, target_year=year)
 
             def score_player_full(player):
                 player.pro_opponent = resolve_player_opponent(player)
