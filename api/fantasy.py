@@ -249,13 +249,7 @@ def fetch_team_live_depth_chart(item):
 
 
 def build_live_defense_matrix(league=None, current_week=10, target_year=2026):
-    """
-    Dynamically builds the 32-team defense matrix using:
-    1. Live ESPN NFL Depth Charts & Rosters (real-time starters at DE/DT, LB, CB, Slot/S)
-    2. Live ESPN NFL Injury Feed (adjusting ratings AND Man/Zone/Nickel scheme tendencies)
-    3. Full 2026 Season Overall D/ST Performance (no short-term 3-week recency bias)
-    """
-    cache_path = f"/tmp/live_def_matrix_{target_year}_wk{current_week}_v12.json"
+    cache_path = f"/tmp/live_def_matrix_{target_year}_wk{current_week}_v13.json"
     now_ts = datetime.now(timezone.utc).timestamp()
 
     if os.path.exists(cache_path):
@@ -279,7 +273,6 @@ def build_live_defense_matrix(league=None, current_week=10, target_year=2026):
         live_matrix[team_abbr]["key_defender"] = f"{team_abbr} Active Starters"
         live_matrix[team_abbr]["weekly_trend_note"] = f"{target_year} Full-Season Overall Scheme"
 
-    # 1. Fetch Live Current-Week Depth Charts & Starters in Parallel across all 32 NFL Teams
     try:
         with ThreadPoolExecutor(max_workers=16) as executor:
             dc_results = list(executor.map(fetch_team_live_depth_chart, ESPN_TEAM_IDS.items()))
@@ -317,7 +310,6 @@ def build_live_defense_matrix(league=None, current_week=10, target_year=2026):
     except Exception:
         pass
 
-    # 2. Fetch Live NFL Defensive Injuries & Dynamically Shift Scheme / Coverage Tendencies
     try:
         inj_url = "https://site.api.espn.com/apis/site/v2/sports/football/nfl/injuries"
         req = urllib.request.Request(inj_url, headers={'User-Agent': 'Mozilla/5.0'})
@@ -378,7 +370,6 @@ def build_live_defense_matrix(league=None, current_week=10, target_year=2026):
     except Exception:
         pass
 
-    # 3. Calibrate 100% on Full 2026 Season Overall D/ST Performance
     if league is not None:
         try:
             dst_players = league.free_agents(week=current_week, size=40, position='D/ST')
@@ -432,7 +423,7 @@ def build_live_defense_matrix(league=None, current_week=10, target_year=2026):
     return live_matrix
 
 
-def analyze_micro_matchup(player, pos, espn_proj, season_avg, is_desperate=False, live_matrix=None):
+def analyze_micro_matchup(player, pos, espn_proj, season_avg, is_desperate=False, live_matrix=None, scheme_weight=0.45):
     active_matrix = live_matrix or NFL_DEFENSE_MATRIX
     raw_opp = getattr(player, 'pro_opponent', '') or ''
     opp = normalize_team_abbrev(raw_opp)
@@ -452,7 +443,7 @@ def analyze_micro_matchup(player, pos, espn_proj, season_avg, is_desperate=False
     d = active_matrix[opp]
     base_d = NFL_DEFENSE_MATRIX.get(opp, d)
     clean_n, _ = clean_player_name(player.name)
-    adj = 0.0
+    raw_adj = 0.0
 
     man_pct = d["man"]
     zone_pct = d["zone"]
@@ -473,35 +464,35 @@ def analyze_micro_matchup(player, pos, espn_proj, season_avg, is_desperate=False
             cov_edge = ((zone_pct - 70) * 0.065) + ((d["blitz"] - 27) * 0.05)
         else:
             cov_edge = ((man_pct - 30) * 0.045) if d["perim_cb"] < 102 else -((man_pct - 30) * 0.045)
-        adj += cov_edge
+        raw_adj += cov_edge
 
         if not is_slot:
             cb_diff = 100 - d["perim_cb"]
             cb_pts = cb_diff * 0.13
-            adj += cb_pts
+            raw_adj += cb_pts
             if d["perim_cb"] >= 109:
-                battle = f"Perimeter WR vs {opp} Lockdown Outside CBs ({cb_names}) — Shadow/Bracket Risk ({round(cb_pts, 1)} pts)"
+                battle = f"Perimeter WR vs {opp} Lockdown Outside CBs ({cb_names}) — Shadow/Bracket Risk"
             elif d["perim_cb"] <= 92:
-                battle = f"Perimeter WR vs {opp} Burnable Outside CBs ({cb_names}, Rating: {d['perim_cb']}) — Advantage WR (+{round(cb_pts, 1)} pts)"
+                battle = f"Perimeter WR vs {opp} Burnable Outside CBs ({cb_names}, Rating: {d['perim_cb']}) — Advantage WR"
             else:
                 battle = f"Perimeter WR vs {opp} Outside CBs ({cb_names}, Rating: {d['perim_cb']})"
         else:
             slot_diff = 100 - d["slot_cov"]
             slot_pts = slot_diff * 0.12
-            adj += slot_pts
+            raw_adj += slot_pts
             if d["perim_cb"] >= 109:
-                adj += 1.2
-                battle = f"Slot Funnel Alert: {opp}'s outside CBs ({cb_names}) funnel targets inside vs {slot_names} (+1.2 pts)"
+                raw_adj += 1.0
+                battle = f"Slot Funnel Alert: {opp}'s outside CBs ({cb_names}) funnel targets inside vs {slot_names}"
             else:
                 battle = f"Slot WR vs {opp} Nickel/Slot Defenders ({slot_names}, Rating: {d['slot_cov']})"
 
         if d["lb_mismatch_rate"] >= 24 and (is_slot or nickel_pct >= 62):
-            lb_boost = round((d["lb_mismatch_rate"] - 19) * 0.15, 1)
-            adj += lb_boost
+            lb_boost = round((d["lb_mismatch_rate"] - 19) * 0.14, 1)
+            raw_adj += lb_boost
             trench_lb_note = (
                 f"🔥 LB Coverage Mismatch ({d['lb_mismatch_rate']}% LB/Safety Slot Rate): "
                 f"When {opp} transitions between Base ({base_pct}%) and Nickel ({nickel_pct}%), "
-                f"motion/slot receivers isolate on LBs ({lb_names}) over the middle (+{lb_boost} pts)."
+                f"motion/slot receivers isolate on LBs ({lb_names}) over the middle."
             )
         elif d["slot_cov"] >= 105 and is_slot:
             trench_lb_note = f"⚠️ Tight Nickel Coverage: {opp} uses {slot_names} & {lb_names} to erase slot seams (Dime {dime_pct}%)."
@@ -513,31 +504,31 @@ def analyze_micro_matchup(player, pos, espn_proj, season_avg, is_desperate=False
 
         trench_diff = 100 - d["dline_run_stop"]
         trench_pts = trench_diff * 0.15
-        adj += trench_pts
+        raw_adj += trench_pts
 
         if d["dline_run_stop"] >= 108:
-            battle = f"RB vs {opp} Elite Front ({front_names}, Run Stop Rating: {d['dline_run_stop']}) — Tough Trench Sledding ({round(trench_pts, 1)} pts)"
+            battle = f"RB vs {opp} Elite Front ({front_names}, Run Stop Rating: {d['dline_run_stop']}) — Tough Trench Sledding"
         elif d["dline_run_stop"] <= 92:
-            battle = f"RB vs {opp} Soft Interior Front ({front_names}, Rating: {d['dline_run_stop']}) — High Yards-Before-Contact Smash (+{round(trench_pts, 1)} pts)"
+            battle = f"RB vs {opp} Soft Interior Front ({front_names}, Rating: {d['dline_run_stop']}) — High Yards-Before-Contact Smash"
         else:
             battle = f"RB vs {opp} Defensive Front ({front_names} | LBs: {lb_names} | Rating: {d['dline_run_stop']})"
 
         sub_pkg_pct = nickel_pct + dime_pct
         if sub_pkg_pct >= 77:
-            adj += 1.3
-            trench_lb_note = f"⚡ Light Box Advantage: {opp} plays {sub_pkg_pct}% Nickel/Dime (only {base_pct}% Base), creating 6-man light boxes (+1.3 pts)."
+            raw_adj += 1.2
+            trench_lb_note = f"⚡ Light Box Advantage: {opp} plays {sub_pkg_pct}% Nickel/Dime (only {base_pct}% Base), creating 6-man light boxes."
         elif is_receiving_back and (d["blitz"] >= 30 or zone_pct >= 74):
-            adj += 1.5
-            trench_lb_note = f"🔥 Checkdown/LB Mismatch: {opp}'s {d['blitz']}% blitz & {zone_pct}% zone forces LBs ({lb_names}) to cover RBs in space (+1.5 pts)."
+            raw_adj += 1.3
+            trench_lb_note = f"🔥 Checkdown/LB Mismatch: {opp}'s {d['blitz']}% blitz & {zone_pct}% zone forces LBs ({lb_names}) to cover RBs in space."
         else:
             trench_lb_note = f"Box Count Split: {opp} runs {base_pct}% Base (7+ man box) vs {nickel_pct}% Nickel (LBs: {lb_names})."
 
     elif pos == "TE":
         seam_diff = (100 - d["slot_cov"]) * 0.11 + ((d["lb_mismatch_rate"] - 20) * 0.13)
-        adj += seam_diff
+        raw_adj += seam_diff
         if d["blitz"] >= 31:
-            adj += 1.0
-            battle = f"TE Hot-Read Advantage vs {opp}'s {d['blitz']}% Blitz Rate (covered by {lb_names} / {slot_names}, +1.0 pts)"
+            raw_adj += 0.9
+            battle = f"TE Hot-Read Advantage vs {opp}'s {d['blitz']}% Blitz Rate (covered by {lb_names} / {slot_names})"
         else:
             battle = f"TE vs {opp} Seam/LB Coverage ({lb_names} & {slot_names}, Rating: {d['slot_cov']})"
 
@@ -549,24 +540,22 @@ def analyze_micro_matchup(player, pos, espn_proj, season_avg, is_desperate=False
     else:
         rush_diff = (100 - d["pass_rush"]) * 0.12
         sec_diff = (100 - ((d["perim_cb"] + d["slot_cov"]) / 2)) * 0.11
-        adj += (rush_diff + sec_diff)
+        raw_adj += (rush_diff + sec_diff)
         battle = f"QB vs {opp} Pass Rush ({front_names}, Pressure Rating: {d['pass_rush']}, Blitz: {d['blitz']}%)"
         trench_lb_note = f"Coverage Shell Read: {opp} runs {d['shell']} ({zone_pct}% Zone / {man_pct}% Man | CBs: {cb_names})."
 
-    if is_desperate and adj > 0:
-        adj *= 1.20
+    # Apply Self-Tuned Scheme Multiplier learned from past weeks' backtests
+    adj = round(max(-2.5, min(2.5, raw_adj * scheme_weight)), 1)
 
-    adj = round(max(-4.0, min(5.0, adj)), 1)
-
-    if adj >= 2.2:
+    if adj >= 1.1:
         grade = "A+ (Smash Scheme Mismatch)"
-    elif adj >= 1.1:
+    elif adj >= 0.6:
         grade = "A (Strong Scheme Edge)"
-    elif adj >= 0.3:
+    elif adj >= 0.2:
         grade = "B+ (Favorable Fit)"
-    elif adj >= -0.4:
+    elif adj >= -0.3:
         grade = "B (Neutral Scheme)"
-    elif adj >= -1.5:
+    elif adj >= -0.9:
         grade = "C (Tough Assignment)"
     else:
         grade = "D (Shadow / Trench Wall)"
@@ -598,9 +587,178 @@ def analyze_micro_matchup(player, pos, espn_proj, season_avg, is_desperate=False
         "individual_battle": battle,
         "trench_or_lb_note": trench_lb_note,
         "injury_impact": injury_report_str,
-        "weekly_trend": d.get("weekly_trend_note", f"2026 Full-Season Scheme")
+        "weekly_trend": d.get("weekly_trend_note", "2026 Full-Season Scheme")
     }
     return adj, grade, report
+
+
+def run_self_learning_audit(roster_players, free_agents, current_week, live_def_matrix):
+    """
+    Looks back at completed weeks (Weeks 1 through current_week - 1),
+    evaluates how the uncalibrated formula performed against ACTUAL points scored,
+    and automatically re-weights the formula to eliminate over-projection bias.
+    """
+    audit_weeks = [w for w in range(max(1, current_week - 4), current_week)]
+    if not audit_weeks:
+        return {
+            "espn_w": 0.65,
+            "season_w": 0.35,
+            "scheme_mult": 0.45,
+            "yt_mult": 0.40,
+            "bias_offset": 0.0,
+            "old_mae": 0.0,
+            "new_mae": 0.0,
+            "old_bias": 0.0,
+            "samples": 0,
+            "summary": "Week 1 Baseline (No past completed weeks to audit yet).",
+            "receipts": []
+        }
+
+    # Combine your roster + top free agents for backtesting
+    pool = list(roster_players) + list(free_agents[:35])
+    seen_names = set()
+    unique_pool = []
+    for p in pool:
+        if p.name not in seen_names and getattr(p, 'position', '') in ('QB', 'RB', 'WR', 'TE'):
+            seen_names.add(p.name)
+            unique_pool.append(p)
+
+    roster_names = {p.name for p in roster_players}
+    records = []
+
+    for p in unique_pool:
+        p_stats = getattr(p, 'stats', {}) or {}
+        season_avg = float(getattr(p, 'avg_points', 0.0) or 0.0)
+
+        for w in audit_weeks:
+            w_data = p_stats.get(w) or p_stats.get(str(w)) or {}
+            proj = w_data.get('projected_points')
+            actual = w_data.get('points')
+            if proj is None or actual is None:
+                continue
+            proj = float(proj)
+            actual = float(actual)
+            # Only audit active weeks where the player was projected to play (>= 4.5 pts)
+            if proj < 4.5 or (actual == 0.0 and proj < 7.0):
+                continue
+
+            eff_season = season_avg if season_avg > 0 else proj
+            old_base = (0.70 * proj) + (0.30 * eff_season)
+
+            # Estimate what the old uncalibrated additive model added on positive-matchup/hype targets
+            scheme_raw, _, _ = analyze_micro_matchup(
+                p, p.position, proj, eff_season, is_desperate=True, live_matrix=live_def_matrix, scheme_weight=1.0
+            )
+            # In the old formula, recommended pickups averaged +1.8 YT + unscaled scheme bonus
+            simulated_old_yt = 1.8 if p.name in roster_names else 1.2
+            old_blended = round(old_base + max(0.0, scheme_raw) + simulated_old_yt, 1)
+
+            records.append({
+                "name": p.name,
+                "pos": p.position,
+                "week": w,
+                "is_rostered": p.name in roster_names,
+                "espn_proj": round(proj, 1),
+                "season_avg": round(eff_season, 1),
+                "scheme_raw": scheme_raw,
+                "old_blended": old_blended,
+                "actual": round(actual, 1),
+                "old_error": round(old_blended - actual, 1)
+            })
+
+    if not records:
+        return {
+            "espn_w": 0.65,
+            "season_w": 0.35,
+            "scheme_mult": 0.45,
+            "yt_mult": 0.40,
+            "bias_offset": -0.5,
+            "old_mae": 0.0,
+            "new_mae": 0.0,
+            "old_bias": 0.0,
+            "samples": 0,
+            "summary": "Calibrated with conservative anti-inflation weights.",
+            "receipts": []
+        }
+
+    # 1. Calculate Old Formula Error & Over-Projection Bias
+    old_bias = sum(r["old_blended"] - r["actual"] for r in records) / len(records)
+    old_mae = sum(abs(r["old_blended"] - r["actual"]) for r in records) / len(records)
+
+    # 2. Grid-Search Optimal ESPN vs Full-Season PPG Blend on Completed Weeks
+    best_espn_w = 0.60
+    best_base_mae = 999.0
+    for w_cand in (0.35, 0.45, 0.55, 0.65, 0.75):
+        cand_mae = sum(
+            abs(((w_cand * r["espn_proj"]) + ((1.0 - w_cand) * r["season_avg"])) - r["actual"])
+            for r in records
+        ) / len(records)
+        if cand_mae < best_base_mae:
+            best_base_mae = cand_mae
+            best_espn_w = w_cand
+
+    best_season_w = round(1.0 - best_espn_w, 2)
+
+    # 3. Dynamically Scale Down Scheme & YT Multipliers Based on Over-Projection Severity
+    # The more the old formula over-projected, the harder the AI dampens additive hype bonuses
+    if old_bias > 1.5:
+        damp_factor = max(0.25, min(0.50, 1.0 / (1.0 + (old_bias * 0.45))))
+    else:
+        damp_factor = 0.50
+
+    tuned_scheme_mult = round(damp_factor, 2)
+    tuned_yt_mult = round(damp_factor * 0.85, 2)
+
+    # 4. Compute Residual Bias Offset so average projection matches average actual points
+    raw_new_errors = []
+    for r in records:
+        new_base = (best_espn_w * r["espn_proj"]) + (best_season_w * r["season_avg"])
+        new_sch = r["scheme_raw"] * tuned_scheme_mult
+        new_est = new_base + new_sch
+        raw_new_errors.append(new_est - r["actual"])
+
+    residual_bias = sum(raw_new_errors) / len(raw_new_errors)
+    # Apply 70% of residual bias as a permanent reality offset (clamped between -2.2 and +0.5)
+    bias_offset = round(max(-2.2, min(0.5, -residual_bias * 0.70)), 2)
+
+    # 5. Score New Formula MAE & Build Audit Receipts for Your Roster Players First
+    new_mae_total = 0.0
+    for r in records:
+        new_base = (best_espn_w * r["espn_proj"]) + (best_season_w * r["season_avg"])
+        new_proj = round(max(1.0, new_base + (r["scheme_raw"] * tuned_scheme_mult) + bias_offset), 1)
+        r["new_blended"] = new_proj
+        r["new_error"] = round(new_proj - r["actual"], 1)
+        new_mae_total += abs(new_proj - r["actual"])
+
+    new_mae = round(new_mae_total / len(records), 2)
+    old_mae = round(old_mae, 2)
+    old_bias = round(old_bias, 2)
+
+    # Sort receipts: Your rostered players from the most recent completed week first
+    records.sort(key=lambda x: (not x["is_rostered"], -x["week"], -abs(x["old_error"])))
+    top_receipts = records[:10]
+
+    summary_text = (
+        f"Audited {len(records)} player-weeks (Wks {audit_weeks[0]}–{audit_weeks[-1]}). "
+        f"Old formula over-projected by {'+' if old_bias >= 0 else ''}{old_bias} pts/gm (MAE: {old_mae}). "
+        f"Auto-tuned base to {int(best_espn_w*100)}% ESPN / {int(best_season_w*100)}% Season Avg, "
+        f"dampened Scheme weight to {tuned_scheme_mult}x & YT weight to {tuned_yt_mult}x, "
+        f"and applied a {bias_offset} pt reality correction (New MAE: {new_mae} pts)."
+    )
+
+    return {
+        "espn_w": best_espn_w,
+        "season_w": best_season_w,
+        "scheme_mult": tuned_scheme_mult,
+        "yt_mult": tuned_yt_mult,
+        "bias_offset": bias_offset,
+        "old_mae": old_mae,
+        "new_mae": new_mae,
+        "old_bias": old_bias,
+        "samples": len(records),
+        "summary": summary_text,
+        "receipts": top_receipts
+    }
 
 
 def parse_chapter_segments(desc_text):
@@ -813,7 +971,7 @@ def score_segment_context(seg_text, video_title=""):
     return score, verdict, signals[:4]
 
 
-def find_player_clips(player_name, yt_videos, is_desperate=False):
+def find_player_clips(player_name, yt_videos, is_desperate=False, yt_mult=0.40):
     clean_full, parts = clean_player_name(player_name)
     if len(parts) < 2:
         return [], 0, [], 0.0, "No Mentions"
@@ -884,21 +1042,20 @@ def find_player_clips(player_name, yt_videos, is_desperate=False):
                 if len([c for c in clips if c["video_id"] == v["video_id"]]) >= 2:
                     break
 
-    consensus_boost = len(bullish_channels) * (0.75 if is_desperate else 0.45)
+    consensus_boost = len(bullish_channels) * (0.55 if is_desperate else 0.35)
     consensus_penalty = len(bearish_channels) * 0.65
 
-    raw_yt_bonus = cumulative_sentiment_pts + consensus_boost - consensus_penalty
-    if is_desperate and raw_yt_bonus > 0:
-        raw_yt_bonus *= 1.25
+    # Multiply raw YT sentiment by the Self-Tuned YT Multiplier learned from backtesting
+    raw_yt_bonus = (cumulative_sentiment_pts + consensus_boost - consensus_penalty) * yt_mult
 
-    max_cap = 5.5 if is_desperate else 3.0
-    yt_bonus = round(max(-3.0, min(max_cap, raw_yt_bonus)), 1)
+    max_cap = 2.4 if is_desperate else 1.6
+    yt_bonus = round(max(-2.5, min(max_cap, raw_yt_bonus)), 1)
 
-    if yt_bonus >= 1.5:
+    if yt_bonus >= 0.9:
         sentiment_label = f"🟢 Strong Analyst Endorsement ({len(bullish_channels)} Bullish Ch)"
-    elif yt_bonus >= 0.4:
+    elif yt_bonus >= 0.2:
         sentiment_label = "🟢 Positive Film Consensus"
-    elif yt_bonus <= -0.5:
+    elif yt_bonus <= -0.3:
         sentiment_label = f"🔴 Analyst Sit/Drop Warning ({len(bearish_channels)} Bearish Ch)"
     elif total_mentions > 0:
         sentiment_label = "⚪ Neutral Name-Drop Only (0.0 Bonus)"
@@ -1049,8 +1206,27 @@ class handler(BaseHTTPRequestHandler):
                     return nfl_opp_map[pro_team]
                 return "BYE"
 
+            # Resolve opponents on roster & free agents first so the backtester has full context
+            for p in my_team.roster:
+                p.pro_opponent = resolve_player_opponent(p)
+            for fa in free_agents[:85]:
+                fa.pro_opponent = resolve_player_opponent(fa)
+
+            yt_videos = fetch_weekly_2026_videos(current_week=week, target_year=year)
+            live_def_matrix = build_live_defense_matrix(league=league, current_week=week, target_year=year)
+
+            # --- RUN SELF-LEARNING BACKTEST AUDIT ACROSS COMPLETED WEEKS ---
+            calibration = run_self_learning_audit(
+                my_team.roster, free_agents, current_week=week, live_def_matrix=live_def_matrix
+            )
+            espn_w = calibration["espn_w"]
+            season_w = calibration["season_w"]
+            scheme_mult = calibration["scheme_mult"]
+            yt_mult = calibration["yt_mult"]
+            bias_offset = calibration["bias_offset"]
+
             def get_true_baseline(player):
-                """Blends 70% ESPN Weekly Projection + 30% Full 2026 Season PPG Average."""
+                """Uses Self-Tuned ESPN vs Full-Season PPG weights learned from past weeks."""
                 curr_stats = player.stats.get(week, {})
                 espn_proj = float(curr_stats.get('projected_points', player.projected_total_points / 17))
 
@@ -1064,7 +1240,7 @@ class handler(BaseHTTPRequestHandler):
                     season_avg = (sum(played_pts) / len(played_pts)) if played_pts else espn_proj
 
                 if season_avg > 0 and espn_proj > 0:
-                    true_base = (0.70 * espn_proj) + (0.30 * season_avg)
+                    true_base = (espn_w * espn_proj) + (season_w * season_avg)
                 else:
                     true_base = espn_proj
 
@@ -1075,32 +1251,33 @@ class handler(BaseHTTPRequestHandler):
 
             if playoff_pct < 35.0:
                 mode = "DESPERATION MODE"
-                mode_desc = "Playoff odds are critical (<35%). Exploiting Nickel/LB coverage mismatches, D-Line trench edges, and verified bullish analyst breakouts."
+                mode_desc = "Playoff odds are critical (<35%). Hunting scheme mismatches & film breakouts, calibrated by weekly backtest shrinkage."
             elif playoff_pct < 60.0:
                 mode = "AGGRESSIVE PUSH"
-                mode_desc = "Playoff race is tight. Blending scheme-specific coverage/trench edges with full-season usage and verified positive film study."
+                mode_desc = "Playoff race is tight. Blending self-tuned usage baselines with scheme edges and film study."
             else:
                 mode = "CONTENDER MODE"
                 mode_desc = "Strong playoff position. Prioritizing high-floor scheme fits and blocking league rivals."
 
             is_desperate = playoff_pct < 45.0
 
-            yt_videos = fetch_weekly_2026_videos(current_week=week, target_year=year)
-            live_def_matrix = build_live_defense_matrix(league=league, current_week=week, target_year=year)
-
             def score_player_full(player):
-                player.pro_opponent = resolve_player_opponent(player)
                 espn_proj, season_avg, true_base = get_true_baseline(player)
 
                 scheme_adj, matchup_grade, matchup_report = analyze_micro_matchup(
-                    player, player.position, espn_proj, season_avg, is_desperate, live_def_matrix
+                    player, player.position, espn_proj, season_avg, is_desperate, live_def_matrix, scheme_weight=scheme_mult
                 )
 
                 channels, mentions, clips, yt_bonus, sent_label = find_player_clips(
-                    player.name, yt_videos, is_desperate
+                    player.name, yt_videos, is_desperate, yt_mult=yt_mult
                 )
 
-                blended_score = round(true_base + scheme_adj + yt_bonus, 1)
+                # Apply Empirical Bayes Shrinkage when both Scheme and YT are positive so bonuses never double-count
+                combined_bonus = scheme_adj + yt_bonus
+                if scheme_adj > 0 and yt_bonus > 0:
+                    combined_bonus = round(combined_bonus * 0.80, 1)
+
+                blended_score = round(max(0.0, true_base + combined_bonus + bias_offset), 1)
                 return {
                     "espn_proj": espn_proj,
                     "recent_avg": season_avg,
@@ -1109,6 +1286,7 @@ class handler(BaseHTTPRequestHandler):
                     "matchup_grade": matchup_grade,
                     "matchup_report": matchup_report,
                     "yt_bonus": yt_bonus,
+                    "bias_offset": bias_offset,
                     "blended_score": blended_score,
                     "yt_mentions": mentions,
                     "yt_channels": channels,
@@ -1156,12 +1334,12 @@ class handler(BaseHTTPRequestHandler):
                     sc = score_player_full(fa)
 
                     if sc["blended_score"] > weakest["blended_score"]:
-                        tag = "Scheme & Floor Upgrade"
-                        if sc["scheme_adj"] >= 1.5 and sc["yt_bonus"] >= 1.0:
+                        tag = "Calibrated Upgrade"
+                        if sc["scheme_adj"] >= 0.8 and sc["yt_bonus"] >= 0.5:
                             tag = "🎯 Elite Scheme + Bullish Film Smash"
-                        elif sc["scheme_adj"] >= 1.5:
+                        elif sc["scheme_adj"] >= 0.8:
                             tag = "🛡️ Defensive Scheme Mismatch"
-                        elif sc["yt_bonus"] >= 1.8:
+                        elif sc["yt_bonus"] >= 0.8:
                             tag = "🔥 Verified Bullish Analyst Target"
 
                         scored_fas.append({
@@ -1175,6 +1353,7 @@ class handler(BaseHTTPRequestHandler):
                             "matchup_grade": sc["matchup_grade"],
                             "matchup_report": sc["matchup_report"],
                             "yt_bonus": sc["yt_bonus"],
+                            "bias_offset": sc["bias_offset"],
                             "blended_score": sc["blended_score"],
                             "yt_mentions": sc["yt_mentions"],
                             "yt_channels": sc["yt_channels"],
@@ -1203,6 +1382,7 @@ class handler(BaseHTTPRequestHandler):
                 "playoff_data": playoff_data,
                 "mode": mode,
                 "mode_desc": mode_desc,
+                "calibration": calibration,
                 "videos_scanned": [
                     {"id": v["video_id"], "channel": v["channel"], "title": v["title"], "date": v["published"]}
                     for v in yt_videos
