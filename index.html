@@ -104,7 +104,7 @@
       const timeoutId = setTimeout(() => controller.abort(), 14000);
 
       try {
-        if (statusEl) statusEl.innerText = "Running Deep NFL Scheme & Live Defensive Injury Engine...";
+        if (statusEl) statusEl.innerText = "Running Self-Learning Backtest Audit & Live NFL Scheme Engine...";
 
         const res = await fetch('/api/fantasy', { signal: controller.signal });
         clearTimeout(timeoutId);
@@ -129,7 +129,7 @@
           return;
         }
 
-        const storageKey = `fantasy_knowledge_${data.year}_week_${data.week}_v10`;
+        const storageKey = `fantasy_knowledge_${data.year}_week_${data.week}_v13`;
         const savedMemory = JSON.parse(localStorage.getItem(storageKey) || '{"videos": {}, "playerMentions": {}}');
 
         (data.videos_scanned || []).forEach(v => {
@@ -177,6 +177,23 @@
           </div>
         `).join('');
 
+        // Build Self-Learning Audit Receipts Table
+        const cal = data.calibration || {};
+        const receiptsHtml = (cal.receipts || []).map(r => {
+          const oldErrStr = r.old_error >= 0 ? `+${r.old_error}` : `${r.old_error}`;
+          const newErrStr = r.new_error >= 0 ? `+${r.new_error}` : `${r.new_error}`;
+          const rosterBadge = r.is_rostered ? `<span style="color:#60a5fa; font-weight:bold;">[My Roster]</span> ` : '';
+          return `
+            <div style="padding: 6px 0; border-bottom: 1px solid #222; font-size: 0.8rem; display:flex; justify-content:space-between; flex-wrap:wrap; gap:6px;">
+              <span>${rosterBadge}<strong>Wk ${r.week} ${r.name}</strong> (${r.pos}) — Actual Scored: <strong style="color:#fff;">${r.actual} pts</strong></span>
+              <span style="color:#aaa;">
+                Old Proj: <span style="color:#ef4444;">${r.old_blended} (${oldErrStr} err)</span> &nbsp;→&nbsp;
+                Tuned Proj: <span style="color:#4ade80;">${r.new_blended} (${newErrStr} err)</span>
+              </span>
+            </div>
+          `;
+        }).join('');
+
         let html = `
           <div class="card" style="border-color: ${badgeColor}; margin-bottom: 20px;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; flex-wrap: wrap; gap: 8px;">
@@ -192,6 +209,19 @@
             <p style="font-size: 0.85rem; color: #888; margin-bottom: 8px;">
               <strong>Upcoming Matchups:</strong> ${schedHtml || 'Playoffs Active'}
             </p>
+
+            <details style="margin-top: 8px; background: #111; border: 1px solid #262626; border-radius: 6px; padding: 8px 12px;">
+              <summary style="cursor: pointer; font-size: 0.83rem; color: #c084fc; font-weight: 500; user-select: none;">
+                🧠 Self-Learning Formula Audit: Old Bias ${cal.old_bias >= 0 ? '+' + cal.old_bias : cal.old_bias} pts → Auto-Tuned MAE ${cal.new_mae} pts (Click for Past Week Receipts)
+              </summary>
+              <div style="margin-top: 8px; font-size: 0.82rem; color: #ccc;">
+                <p style="margin-bottom: 8px; color: #d8b4fe;">${cal.summary || 'Model calibrated against completed weeks.'}</p>
+                <div style="max-height: 210px; overflow-y: auto; padding-top: 4px; border-top: 1px solid #262626;">
+                  ${receiptsHtml || '<p style="font-size:0.8rem;">No past week receipts available yet.</p>'}
+                </div>
+              </div>
+            </details>
+
             <details style="margin-top: 8px;">
               <summary style="cursor: pointer; font-size: 0.82rem; color: #4ade80; user-select: none;">
                 ✓ Verified ${data.year} Season • Week ${data.week} Knowledge Vault: ${totalWeeklyVideos} Videos + Live 24/7 Injury-Adjusted Defense Matrix
@@ -209,13 +239,14 @@
           data.recommendations.forEach(rec => {
             const hasMentions = rec.yt_channels && rec.yt_channels.length > 0;
             const ytSign = rec.yt_bonus >= 0 ? `+${rec.yt_bonus}` : `${rec.yt_bonus}`;
+            const biasSign = (rec.bias_offset || 0) >= 0 ? `+${rec.bias_offset || 0}` : `${rec.bias_offset || 0}`;
             const ytBadge = hasMentions
               ? `<span style="color: #4ade80; font-size: 0.84rem;">🔥 YT (${rec.sentiment || 'Analyzed'}): Mentioned ${rec.yt_mentions}x on ${rec.yt_channels.join(', ')} (${ytSign} pts)</span>`
               : `<span style="color: #777; font-size: 0.84rem;">📊 Pure Scheme & Usage Edge (+0.0 YT pts)</span>`;
 
             const mr = rec.matchup_report || {};
             const dr = rec.drop_report || {};
-            const schemeColor = rec.scheme_adj >= 0.5 ? '#4ade80' : (rec.scheme_adj <= -0.5 ? '#ef4444' : '#eab308');
+            const schemeColor = rec.scheme_adj >= 0.4 ? '#4ade80' : (rec.scheme_adj <= -0.4 ? '#ef4444' : '#eab308');
             const schemeSign = rec.scheme_adj >= 0 ? `+${rec.scheme_adj}` : `${rec.scheme_adj}`;
             const dropSchemeSign = (rec.drop_scheme_adj || 0) >= 0 ? `+${rec.drop_scheme_adj || 0}` : `${rec.drop_scheme_adj || 0}`;
 
@@ -231,7 +262,6 @@
                     • <strong>Sub-Package Personnel:</strong> ${mr.personnel_split || 'N/A'}<br>
                     • <strong>1-on-1 Assignment:</strong> ${mr.individual_battle || 'N/A'}<br>
                     • <strong>Nickel / LB / Trench Note:</strong> <span style="color:#93c5fd;">${mr.trench_or_lb_note || 'N/A'}</span><br>
-                    • <strong>Live Opponent DEF Injuries:</strong> <span style="color:#fca5a5;">${mr.injury_impact || 'None listed'}</span>
                     • <strong>Live Opponent DEF Injuries:</strong> <span style="color:#fca5a5;">${mr.injury_impact || 'None listed'}</span><br>
                     • <strong>Overall Season DEF Standing:</strong> <span style="color:#a7f3d0;">${mr.weekly_trend || '2026 Season Overall'}</span>
                   </div>
@@ -283,8 +313,8 @@
                   <span style="font-size: 0.8rem; color: #eab308;">${rec.tag}</span>
                 </div>
                 <p style="margin-bottom: 4px; font-size: 0.88rem;">
-                  <strong>Formula:</strong> ${rec.true_base} True Base <span style="color:#777;">(ESPN ${rec.espn_proj} / Season Avg ${rec.recent_avg})</span> 
-                  ${schemeSign} Scheme ${ytSign} YT
+                  <strong>Self-Tuned Formula:</strong> ${rec.true_base} Base <span style="color:#777;">(ESPN ${rec.espn_proj} / Season Avg ${rec.recent_avg})</span> 
+                  ${schemeSign} Scheme ${ytSign} YT ${biasSign} Calibration
                 </p>
                 <p style="margin-bottom: 8px; font-size: 0.88rem;">
                   <strong>Target to Replace:</strong> ${rec.drop} vs ${dr.opponent || 'OPP'} (${rec.drop_blended} Blended / ${rec.drop_proj} ESPN / ${dropSchemeSign} Scheme)
