@@ -101,10 +101,10 @@
       const statusEl = document.getElementById('loading-status');
 
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 14000);
+      const timeoutId = setTimeout(() => controller.abort(), 18000);
 
       try {
-        if (statusEl) statusEl.innerText = "Running Self-Learning Backtest Audit & Live NFL Scheme Engine...";
+        if (statusEl) statusEl.innerText = "Running 6-Factor Engine (Vegas Lines, Weather, xFP Vacated Volume, Live Depth Charts & Position Backtest)...";
 
         const res = await fetch('/api/fantasy', { signal: controller.signal });
         clearTimeout(timeoutId);
@@ -129,7 +129,7 @@
           return;
         }
 
-        const storageKey = `fantasy_knowledge_${data.year}_week_${data.week}_v13`;
+        const storageKey = `fantasy_knowledge_${data.year}_week_${data.week}_v14`;
         const savedMemory = JSON.parse(localStorage.getItem(storageKey) || '{"videos": {}, "playerMentions": {}}');
 
         (data.videos_scanned || []).forEach(v => {
@@ -177,7 +177,6 @@
           </div>
         `).join('');
 
-        // Build Self-Learning Audit Receipts Table
         const cal = data.calibration || {};
         const receiptsHtml = (cal.receipts || []).map(r => {
           const oldErrStr = r.old_error >= 0 ? `+${r.old_error}` : `${r.old_error}`;
@@ -212,10 +211,11 @@
 
             <details style="margin-top: 8px; background: #111; border: 1px solid #262626; border-radius: 6px; padding: 8px 12px;">
               <summary style="cursor: pointer; font-size: 0.83rem; color: #c084fc; font-weight: 500; user-select: none;">
-                🧠 Self-Learning Formula Audit: Old Bias ${cal.old_bias >= 0 ? '+' + cal.old_bias : cal.old_bias} pts → Auto-Tuned MAE ${cal.new_mae} pts (Click for Past Week Receipts)
+                🧠 Position-Specific Self-Learning Audit: Old Bias ${cal.old_bias >= 0 ? '+' + cal.old_bias : cal.old_bias} pts → Tuned MAE ${cal.new_mae} pts (Click for Receipts)
               </summary>
               <div style="margin-top: 8px; font-size: 0.82rem; color: #ccc;">
-                <p style="margin-bottom: 8px; color: #d8b4fe;">${cal.summary || 'Model calibrated against completed weeks.'}</p>
+                <p style="margin-bottom: 6px; color: #d8b4fe;">${cal.summary || 'Model calibrated against completed weeks.'}</p>
+                <p style="margin-bottom: 8px; font-size: 0.78rem; color: #a7f3d0;"><strong>Learned Position Weights:</strong> ${cal.pos_summary || 'Active'}</p>
                 <div style="max-height: 210px; overflow-y: auto; padding-top: 4px; border-top: 1px solid #262626;">
                   ${receiptsHtml || '<p style="font-size:0.8rem;">No past week receipts available yet.</p>'}
                 </div>
@@ -224,7 +224,7 @@
 
             <details style="margin-top: 8px;">
               <summary style="cursor: pointer; font-size: 0.82rem; color: #4ade80; user-select: none;">
-                ✓ Verified ${data.year} Season • Week ${data.week} Knowledge Vault: ${totalWeeklyVideos} Videos + Live 24/7 Injury-Adjusted Defense Matrix
+                ✓ Verified ${data.year} Season • Week ${data.week} Vault: ${totalWeeklyVideos} Videos + Live Vegas, Weather, O-Line & Depth Charts
               </summary>
               <div style="margin-top: 8px; max-height: 220px; overflow-y: auto; padding: 8px 12px; background: #111; border-radius: 6px; border: 1px solid #262626;">
                 ${allVideosList || '<p style="font-size:0.8rem;">No videos cached yet.</p>'}
@@ -239,10 +239,13 @@
           data.recommendations.forEach(rec => {
             const hasMentions = rec.yt_channels && rec.yt_channels.length > 0;
             const ytSign = rec.yt_bonus >= 0 ? `+${rec.yt_bonus}` : `${rec.yt_bonus}`;
+            const volSign = (rec.vol_adj || 0) >= 0 ? `+${rec.vol_adj || 0}` : `${rec.vol_adj || 0}`;
+            const vegasSign = (rec.vegas_adj || 0) >= 0 ? `+${rec.vegas_adj || 0}` : `${rec.vegas_adj || 0}`;
             const biasSign = (rec.bias_offset || 0) >= 0 ? `+${rec.bias_offset || 0}` : `${rec.bias_offset || 0}`;
+
             const ytBadge = hasMentions
               ? `<span style="color: #4ade80; font-size: 0.84rem;">🔥 YT (${rec.sentiment || 'Analyzed'}): Mentioned ${rec.yt_mentions}x on ${rec.yt_channels.join(', ')} (${ytSign} pts)</span>`
-              : `<span style="color: #777; font-size: 0.84rem;">📊 Pure Scheme & Usage Edge (+0.0 YT pts)</span>`;
+              : `<span style="color: #777; font-size: 0.84rem;">📊 Pure Volume, Vegas & Scheme Edge (+0.0 YT pts)</span>`;
 
             const mr = rec.matchup_report || {};
             const dr = rec.drop_report || {};
@@ -253,11 +256,13 @@
             const schemeDropdown = `
               <details style="margin-top: 10px; background: #111111; border: 1px solid #262626; border-radius: 6px; padding: 8px 12px;">
                 <summary style="cursor: pointer; font-size: 0.85rem; color: ${schemeColor}; font-weight: 500; user-select: none;">
-                  🛡️ Micro-Matchup vs ${mr.opponent || 'OPP'}: ${rec.matchup_grade || 'Neutral'} (${schemeSign} Scheme Pts) — Click for Coverages, Personnel & Injuries
+                  🛡️ Full Matchup, Vegas, Weather & Volume Breakdown vs ${mr.opponent || 'OPP'} (${schemeSign} Scheme / ${volSign} Vol / ${vegasSign} Vegas)
                 </summary>
-                <div style="margin-top: 8px; font-size: 0.82rem; color: #ccc; line-height: 1.5;">
+                <div style="margin-top: 8px; font-size: 0.82rem; color: #ccc; line-height: 1.55;">
                   <div style="padding-bottom: 8px; margin-bottom: 8px; border-bottom: 1px solid #262626;">
-                    <strong style="color:#fff;">ADD: ${rec.add} vs ${mr.opponent || 'OPP'} (${schemeSign} pts)</strong><br>
+                    <strong style="color:#fff;">ADD: ${rec.add} vs ${mr.opponent || 'OPP'} (${rec.matchup_grade || 'Neutral'})</strong><br>
+                    • <strong>Vegas Script & Weather (${vegasSign} pts):</strong> <span style="color:#fde047;">${mr.vegas_weather_note || 'N/A'}</span><br>
+                    • <strong>xFP Volume, Vacated Touches & O-Line (${volSign} pts):</strong> <span style="color:#86efac;">${mr.usage_ol_note || 'N/A'}</span><br>
                     • <strong>Coverage Shell Split:</strong> ${mr.coverage_shell || 'N/A'}<br>
                     • <strong>Sub-Package Personnel:</strong> ${mr.personnel_split || 'N/A'}<br>
                     • <strong>1-on-1 Assignment:</strong> ${mr.individual_battle || 'N/A'}<br>
@@ -266,10 +271,10 @@
                     • <strong>Overall Season DEF Standing:</strong> <span style="color:#a7f3d0;">${mr.weekly_trend || '2026 Season Overall'}</span>
                   </div>
                   <div>
-                    <strong style="color:#aaa;">COMPARED TO ROSTERED: ${rec.drop} vs ${dr.opponent || 'OPP'} (${dropSchemeSign} pts)</strong><br>
-                    • <strong>Opponent Shell & Personnel:</strong> ${dr.coverage_shell || 'N/A'} | ${dr.personnel_split || 'N/A'}<br>
-                    • <strong>Assignment:</strong> ${dr.individual_battle || 'N/A'}<br>
-                    • <strong>Scheme Note:</strong> ${dr.trench_or_lb_note || 'N/A'}<br>
+                    <strong style="color:#aaa;">COMPARED TO ROSTERED: ${rec.drop} vs ${dr.opponent || 'OPP'} (${dropSchemeSign} Scheme pts)</strong><br>
+                    • <strong>Vegas & Weather:</strong> ${dr.vegas_weather_note || 'N/A'}<br>
+                    • <strong>Volume & O-Line:</strong> ${dr.usage_ol_note || 'N/A'}<br>
+                    • <strong>Opponent Shell & Assignment:</strong> ${dr.coverage_shell || 'N/A'} | ${dr.individual_battle || 'N/A'}<br>
                     • <strong>Live Opponent DEF Injuries:</strong> <span style="color:#fca5a5;">${dr.injury_impact || 'None listed'}</span>
                   </div>
                 </div>
@@ -312,9 +317,9 @@
                   <h3 style="margin: 0;">[${rec.pos}] Add ${rec.add} (vs ${mr.opponent || 'OPP'}) — Blended: ${rec.blended_score} pts (${rec.diff >= 0 ? '+' + rec.diff : rec.diff})</h3>
                   <span style="font-size: 0.8rem; color: #eab308;">${rec.tag}</span>
                 </div>
-                <p style="margin-bottom: 4px; font-size: 0.88rem;">
-                  <strong>Self-Tuned Formula:</strong> ${rec.true_base} Base <span style="color:#777;">(ESPN ${rec.espn_proj} / Season Avg ${rec.recent_avg})</span> 
-                  ${schemeSign} Scheme ${ytSign} YT ${biasSign} Calibration
+                <p style="margin-bottom: 4px; font-size: 0.86rem;">
+                  <strong>6-Factor Formula:</strong> ${rec.true_base} Base <span style="color:#777;">(ESPN ${rec.espn_proj} / Avg ${rec.recent_avg})</span> 
+                  ${volSign} Vol/OL ${vegasSign} Vegas ${schemeSign} Scheme ${ytSign} YT ${biasSign} Pos-Cal
                 </p>
                 <p style="margin-bottom: 8px; font-size: 0.88rem;">
                   <strong>Target to Replace:</strong> ${rec.drop} vs ${dr.opponent || 'OPP'} (${rec.drop_blended} Blended / ${rec.drop_proj} ESPN / ${dropSchemeSign} Scheme)
@@ -330,14 +335,17 @@
           const rosterRows = data.roster.map(r => {
             const rm = r.matchup_report || {};
             const sSign = r.scheme_adj >= 0 ? `+${r.scheme_adj}` : `${r.scheme_adj}`;
+            const vSign = (r.vol_adj || 0) >= 0 ? `+${r.vol_adj || 0}` : `${r.vol_adj || 0}`;
+            const vgSign = (r.vegas_adj || 0) >= 0 ? `+${r.vegas_adj || 0}` : `${r.vegas_adj || 0}`;
             return `
               <div style="padding: 10px 0; border-bottom: 1px solid #222; font-size: 0.83rem;">
-                <div style="display:flex; justify-content:space-between; color:#fff; font-weight:bold; margin-bottom:3px;">
+                <div style="display:flex; justify-content:space-between; color:#fff; font-weight:bold; margin-bottom:3px; flex-wrap:wrap;">
                   <span>[${r.pos} - ${r.slot}] ${r.name} vs ${rm.opponent || 'BYE'}</span>
-                  <span style="color:#4ade80;">Blended: ${r.blended_score} pts (Base ${r.true_base} | Scheme ${sSign} | YT ${r.yt_bonus >= 0 ? '+' + r.yt_bonus : r.yt_bonus})</span>
+                  <span style="color:#4ade80;">Blended: ${r.blended_score} pts (Base ${r.true_base} | Vol ${vSign} | Vegas ${vgSign} | Scheme ${sSign})</span>
                 </div>
-                <div style="color:#aaa;">• <strong>Scheme & Personnel:</strong> ${rm.coverage_shell || 'N/A'} | ${rm.personnel_split || 'N/A'}</div>
-                <div style="color:#aaa;">• <strong>Matchup Note:</strong> ${rm.individual_battle || 'N/A'} — <span style="color:#93c5fd;">${rm.trench_or_lb_note || ''}</span></div>
+                <div style="color:#fde047;">• <strong>Vegas & Weather:</strong> ${rm.vegas_weather_note || 'N/A'}</div>
+                <div style="color:#86efac;">• <strong>Usage & O-Line:</strong> ${rm.usage_ol_note || 'N/A'}</div>
+                <div style="color:#aaa;">• <strong>Scheme & Assignment:</strong> ${rm.coverage_shell || 'N/A'} | ${rm.individual_battle || 'N/A'}</div>
                 <div style="color:#fca5a5;">• <strong>Opponent DEF Injuries:</strong> ${rm.injury_impact || 'None listed'}</div>
               </div>
             `;
@@ -346,7 +354,7 @@
           html += `
             <details class="card" style="margin-top: 18px; cursor: pointer;">
               <summary style="font-weight: bold; color: #f2f2f2; font-size: 1rem; user-select: none;">
-                🔬 View My Full Roster Micro-Matchup & Scheme Lab (${data.roster.length} Players)
+                🔬 View My Full Roster 6-Factor Matchup, Vegas & Volume Lab (${data.roster.length} Players)
               </summary>
               <div style="margin-top: 10px;">
                 ${rosterRows}
@@ -360,7 +368,7 @@
         clearTimeout(timeoutId);
         container.innerHTML = `<div class="card" style="border-color:#ef4444;">
           <h3>Connection Error</h3>
-          <p>${err.name === 'AbortError' ? 'Request timed out after 14 seconds.' : err.message}</p>
+          <p>${err.name === 'AbortError' ? 'Request timed out after 18 seconds.' : err.message}</p>
         </div>`;
       }
     }
