@@ -148,6 +148,8 @@ PASS_CATCHING_RBS = {
     "travis etienne", "kenneth walker", "aaron jones", "james cook", "d andre swift"
 }
 
+DOME_TEAMS = {"ARI", "ATL", "DAL", "DET", "HOU", "IND", "LAC", "LAR", "LV", "MIN", "NO"}
+
 
 def format_seconds(sec):
     sec = max(0, int(sec))
@@ -173,6 +175,142 @@ def normalize_team_abbrev(raw_opp):
         "LVR": "LV", "NOR": "NO", "NWE": "NE", "SFO": "SF", "TAM": "TB"
     }
     return mapping.get(s, s)
+
+
+def fetch_live_vegas_and_weather(current_week=10, target_year=2026):
+    """
+    Queries ESPN's live NFL Scoreboard API to extract:
+    1. Live Vegas Point Spread, Over/Under, and Implied Team Totals
+    2. Stadium Dome/Indoor status, Temperature, Wind Speed, and Precipitation
+    3. Complete Week X NFL Team-to-Opponent mapping
+    """
+    cache_path = f"/tmp/vegas_weather_{target_year}_wk{current_week}_v14.json"
+    now_ts = datetime.now(timezone.utc).timestamp()
+
+    if os.path.exists(cache_path):
+        try:
+            with open(cache_path, "r") as f:
+                cached = json.load(f)
+            if now_ts - cached.get("timestamp", 0) < 1800:
+                return cached.get("env_map", {}), cached.get("opp_map", {})
+        except Exception:
+            pass
+
+    env_map = {}
+    opp_map = {}
+
+    try:
+        sb_url = "https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard"
+        req = urllib.request.Request(sb_url, headers={'User-Agent': 'Mozilla/5.0'})
+        with urllib.request.urlopen(req, timeout=2.2) as resp:
+            sb_data = json.loads(resp.read().decode('utf-8'))
+
+        for ev in sb_data.get("events", []):
+            comps = ev.get("competitions", [])
+            if not comps:
+                continue
+            comp = comps[0]
+            competitors = comp.get("competitors", [])
+            if len(competitors) < 2:
+                continue
+
+            home_abbr = ""
+            away_abbr = ""
+            for c in competitors:
+                abbr = normalize_team_abbrev(c.get("team", {}).get("abbreviation", ""))
+                if c.get("homeAway") == "home":
+                    home_abbr = abbr
+                else:
+                    away_abbr = abbr
+
+            if home_abbr and away_abbr:
+                opp_map[home_abbr] = away_abbr
+                opp_map[away_abbr] = home_abbr
+
+            # Venue & Weather extraction
+            venue = comp.get("venue", {})
+            is_indoor = bool(venue.get("indoor", False)) or (home_abbr in DOME_TEAMS)
+            weather_obj = comp.get("weather", {}) or {}
+            temp = weather_obj.get("temperature")
+            w_desc = str(weather_obj.get("displayValue", "")).strip()
+
+            wind_mph = 0
+            wind_match = re.search(r'(\d+)\s*mph', w_desc.lower())
+            if wind_match:
+                wind_mph = int(wind_match.group(1))
+
+            # Vegas Odds extraction
+            over_under = 44.5
+            home_spread = 0.0
+            odds_list = comp.get("odds", [])
+            if odds_list and isinstance(odds_list[0], dict):
+                o_obj = odds_list[0]
+                if o_obj.get("overUnder"):
+                    try:
+                        over_under = float(o_obj["overUnder"])
+                    except Exception:
+                        pass
+                details = str(o_obj.get("details", "")).strip()  # e.g., "KC -6.5" or "EVEN"
+                if details and details.upper() != "EVEN":
+                    parts = details.split()
+                    if len(parts) >= 2:
+                        fav_team = normalize_team_abbrev(parts[0])
+                        try:
+                            sp_val = float(parts[1])
+                            if fav_team == home_abbr:
+                                home_spread = -abs(sp_val)
+                            elif fav_team == away_abbr:
+                                home_spread = abs(sp_val)
+                        except Exception:
+                            pass
+
+            away_spread = -home_spread
+            # Implied Total formula: (O/U / 2) - (Team Spread / 2)
+            home_implied = round((over_under / 2.0) - (home_spread / 2.0), 1)
+            away_implied = round((over_under / 2.0) - (away_spread / 2.0), 1)
+
+            if is_indoor:
+                weather_summary = "🏟️ Indoor Dome (Fast Track)"
+            elif w_desc or temp:
+                t_str = f"{temp}°F" if temp else ""
+                weather_summary = f"🌤️ Outdoor {t_str} {w_desc}".strip()
+            else:
+                weather_summary = "🌤️ Standard Outdoor Stadium"
+
+            env_map[home_abbr] = {
+                "is_home": True,
+                "opponent": away_abbr,
+                "indoor": is_indoor,
+                "temp": temp,
+                "weather_desc": w_desc,
+                "wind_mph": wind_mph,
+                "weather_summary": weather_summary,
+                "over_under": over_under,
+                "spread": home_spread,
+                "implied_total": home_implied
+            }
+            env_map[away_abbr] = {
+                "is_home": False,
+                "opponent": home_abbr,
+                "indoor": is_indoor,
+                "temp": temp,
+                "weather_desc": w_desc,
+                "wind_mph": wind_mph,
+                "weather_summary": weather_summary,
+                "over_under": over_under,
+                "spread": away_spread,
+                "implied_total": away_implied
+            }
+    except Exception:
+        pass
+
+    try:
+        with open(cache_path, "w") as f:
+            json.dump({"timestamp": now_ts, "env_map": env_map, "opp_map": opp_map}, f)
+    except Exception:
+        pass
+
+    return env_map, opp_map
 
 
 def fetch_team_live_depth_chart(item):
@@ -248,8 +386,13 @@ def fetch_team_live_depth_chart(item):
     return result
 
 
-def build_live_defense_matrix(league=None, current_week=10, target_year=2026):
-    cache_path = f"/tmp/live_def_matrix_{target_year}_wk{current_week}_v13.json"
+def build_live_defense_and_offense_matrix(league=None, current_week=10, target_year=2026):
+    """
+    Builds both:
+    1. live_matrix: 32-team defensive schemes, live starters, defensive injuries, & full-season D/ST form
+    2. offense_inj_map: Offensive Line injuries (OT/OG/C) & vacated skill volume (RB/WR/TE Out/IR) per team
+    """
+    cache_path = f"/tmp/live_def_off_matrix_{target_year}_wk{current_week}_v14.json"
     now_ts = datetime.now(timezone.utc).timestamp()
 
     if os.path.exists(cache_path):
@@ -257,11 +400,12 @@ def build_live_defense_matrix(league=None, current_week=10, target_year=2026):
             with open(cache_path, "r") as f:
                 cached = json.load(f)
             if now_ts - cached.get("timestamp", 0) < 1800:
-                return cached["matrix"]
+                return cached["matrix"], cached.get("offense_inj", {})
         except Exception:
             pass
 
     live_matrix = {}
+    offense_inj = {}
     for team_abbr, base_data in NFL_DEFENSE_MATRIX.items():
         live_matrix[team_abbr] = dict(base_data)
         live_matrix[team_abbr]["injuries"] = []
@@ -273,6 +417,16 @@ def build_live_defense_matrix(league=None, current_week=10, target_year=2026):
         live_matrix[team_abbr]["key_defender"] = f"{team_abbr} Active Starters"
         live_matrix[team_abbr]["weekly_trend_note"] = f"{target_year} Full-Season Overall Scheme"
 
+        offense_inj[team_abbr] = {
+            "ol_out": [],
+            "ol_penalty": 0.0,
+            "RB": [],
+            "WR": [],
+            "TE": [],
+            "QB": []
+        }
+
+    # 1. Fetch Live Current-Week Depth Charts in Parallel
     try:
         with ThreadPoolExecutor(max_workers=16) as executor:
             dc_results = list(executor.map(fetch_team_live_depth_chart, ESPN_TEAM_IDS.items()))
@@ -310,6 +464,7 @@ def build_live_defense_matrix(league=None, current_week=10, target_year=2026):
     except Exception:
         pass
 
+    # 2. Fetch Live NFL Injuries (Both Defensive Matrix Downgrades AND Offensive Vacated Volume / O-Line)
     try:
         inj_url = "https://site.api.espn.com/apis/site/v2/sports/football/nfl/injuries"
         req = urllib.request.Request(inj_url, headers={'User-Agent': 'Mozilla/5.0'})
@@ -328,13 +483,10 @@ def build_live_defense_matrix(league=None, current_week=10, target_year=2026):
                     continue
 
                 pos = athlete.get("position", {}).get("abbreviation", "").upper()
-                name = athlete.get("displayName", "Defender")
+                name = athlete.get("displayName", "Player")
                 status = item.get("status", "")
-
-                if pos not in ("CB", "DB", "S", "FS", "SS", "LB", "ILB", "MLB", "OLB", "DE", "DT", "NT", "DL", "EDGE"):
-                    continue
-
                 status_low = status.lower()
+
                 if any(s in status_low for s in ("out", "injured reserve", "ir", "doubtful", "suspension")):
                     sev = 1.0
                     short_stat = "OUT/IR" if "reserve" in status_low or "out" in status_low else "Doubtful"
@@ -342,6 +494,19 @@ def build_live_defense_matrix(league=None, current_week=10, target_year=2026):
                     sev = 0.45
                     short_stat = "Q"
                 else:
+                    continue
+
+                # A. Track Offensive Line & Offensive Skill Vacated Volume
+                o_team = offense_inj[t_abbr]
+                if pos in ("OT", "LT", "RT", "G", "OG", "LG", "RG", "C", "OL") and sev >= 1.0:
+                    o_team["ol_out"].append(f"{name} ({pos})")
+                    o_team["ol_penalty"] = round(min(1.2, o_team["ol_penalty"] + 0.35), 2)
+                elif pos in ("RB", "WR", "TE", "QB") and sev >= 1.0:
+                    if len(o_team[pos]) < 3:
+                        o_team[pos].append(f"{name} ({short_stat})")
+
+                # B. Track Defensive Injuries & Shift Coverage Tendencies
+                if pos not in ("CB", "DB", "S", "FS", "SS", "LB", "ILB", "MLB", "OLB", "DE", "DT", "NT", "DL", "EDGE"):
                     continue
 
                 d_team = live_matrix[t_abbr]
@@ -370,6 +535,7 @@ def build_live_defense_matrix(league=None, current_week=10, target_year=2026):
     except Exception:
         pass
 
+    # 3. Calibrate 100% on Full 2026 Season Overall D/ST Performance
     if league is not None:
         try:
             dst_players = league.free_agents(week=current_week, size=40, position='D/ST')
@@ -416,11 +582,159 @@ def build_live_defense_matrix(league=None, current_week=10, target_year=2026):
 
     try:
         with open(cache_path, "w") as f:
-            json.dump({"timestamp": now_ts, "matrix": live_matrix}, f)
+            json.dump({"timestamp": now_ts, "matrix": live_matrix, "offense_inj": offense_inj}, f)
     except Exception:
         pass
 
-    return live_matrix
+    return live_matrix, offense_inj
+
+
+def evaluate_volume_and_vacated_context(player, pos, current_week, espn_proj, season_avg, offense_inj_map):
+    """
+    Calculates:
+    1. Expected Fantasy Points (xFP) Opportunity Edge from raw Targets, Receptions & Carries
+    2. Teammate Vacated Volume Boost (when a same-position starter on the player's team is Out/IR)
+    3. Offensive Line Injury Trench Penalty (when 1+ starting O-Linemen on the player's team are Out/IR)
+    """
+    pro_team = normalize_team_abbrev(getattr(player, 'proTeam', ''))
+    o_ctx = (offense_inj_map or {}).get(pro_team, {})
+
+    vol_adj = 0.0
+    notes = []
+    has_vacated_boost = False
+
+    # 1. Check Teammate Vacated Volume on Player's Own Offense
+    missing_teammates = [
+        tm for tm in o_ctx.get(pos, [])
+        if player.name.lower().split()[-1] not in tm.lower()
+    ]
+    if missing_teammates and espn_proj >= 5.5:
+        has_vacated_boost = True
+        vac_pts = 0.85 if len(missing_teammates) == 1 else 1.35
+        vol_adj += vac_pts
+        notes.append(f"⚡ Vacated Volume (+{vac_pts} pts): {pro_team} {pos} {', '.join(missing_teammates[:2])} listed Out/IR")
+
+    # 2. Check Offensive Line Injuries on Player's Own Offense
+    ol_out = o_ctx.get("ol_out", [])
+    ol_pen = float(o_ctx.get("ol_penalty", 0.0))
+    if ol_out and pos in ("RB", "QB"):
+        applied_ol_pen = ol_pen if pos == "RB" else round(ol_pen * 0.75, 2)
+        vol_adj -= applied_ol_pen
+        notes.append(f"⚠️ O-Line Trench Penalty (-{applied_ol_pen} pts): {pro_team} missing {', '.join(ol_out[:2])}")
+
+    # 3. Extract Raw Targets, Receptions & Carries from ESPN Stat Breakdowns (xFP Volume Check)
+    p_stats = getattr(player, 'stats', {}) or {}
+    targets_list = []
+    carries_list = []
+    rec_list = []
+
+    for w in range(1, current_week):
+        w_obj = p_stats.get(w) or p_stats.get(str(w)) or {}
+        bd = w_obj.get('breakdown', {}) or {}
+        if not bd:
+            continue
+        t_val = bd.get('receivingTargets', bd.get('58', 0)) or 0
+        r_val = bd.get('receivingReceptions', bd.get('53', 0)) or 0
+        c_val = bd.get('rushingAttempts', bd.get('23', 0)) or 0
+        if (t_val + c_val) > 0:
+            targets_list.append(float(t_val))
+            rec_list.append(float(r_val))
+            carries_list.append(float(c_val))
+
+    if targets_list or carries_list:
+        games_n = max(1, len(targets_list))
+        t_pg = round(sum(targets_list) / games_n, 1)
+        r_pg = round(sum(rec_list) / games_n, 1)
+        c_pg = round(sum(carries_list) / games_n, 1)
+
+        if pos in ("WR", "TE"):
+            xfp_pg = (t_pg * 1.35) + (r_pg * 0.35)
+            if t_pg >= 7.0:
+                vol_adj += 0.65
+                notes.append(f"🎯 High Target Earner: {t_pg} Targets / {r_pg} Rec per game (+0.65 xFP)")
+            elif t_pg <= 3.2 and season_avg >= 9.0:
+                vol_adj -= 0.55
+                notes.append(f"⚠️ Low-Volume TD Fluke Risk: Only {t_pg} Targets/gm (-0.55 xFP)")
+            else:
+                notes.append(f"📊 Season Usage: {t_pg} Targets & {r_pg} Catches/gm ({xfp_pg:.1f} xFP)")
+        elif pos == "RB":
+            touches_pg = round(c_pg + r_pg, 1)
+            if touches_pg >= 15.0 or t_pg >= 4.0:
+                vol_adj += 0.70
+                notes.append(f"🔋 Workhorse Volume: {c_pg} Carries + {t_pg} Targets/gm (+0.70 xFP)")
+            elif touches_pg <= 7.0 and not has_vacated_boost:
+                vol_adj -= 0.45
+                notes.append(f"⚠️ Low Touch Floor: {c_pg} Carries + {t_pg} Targets/gm (-0.45 xFP)")
+            else:
+                notes.append(f"📊 Season Usage: {c_pg} Carries & {t_pg} Targets/gm")
+
+    if not notes:
+        if espn_proj >= season_avg + 2.2:
+            notes.append(f"📈 Projected Role Expansion (Wk Proj {espn_proj} vs {season_avg} Season Avg)")
+        else:
+            notes.append(f"📊 Steady Role ({season_avg} Season PPG | Healthy O-Line)")
+
+    vol_adj = round(max(-1.5, min(1.8, vol_adj)), 1)
+    return vol_adj, has_vacated_boost, " • ".join(notes)
+
+
+def evaluate_vegas_and_weather_context(player, pos, vegas_weather_map):
+    """
+    Calculates Vegas Implied Team Total, Point Spread Game Script, and Stadium Weather adjustments.
+    """
+    pro_team = normalize_team_abbrev(getattr(player, 'proTeam', ''))
+    env = (vegas_weather_map or {}).get(pro_team)
+    if not env:
+        return 0.0, "Standard Neutral Game Script (22.0 Implied Pts)"
+
+    adj = 0.0
+    implied = float(env.get("implied_total", 22.0))
+    spread = float(env.get("spread", 0.0))
+    ou = float(env.get("over_under", 44.5))
+    indoor = bool(env.get("indoor", False))
+    wind = int(env.get("wind_mph", 0))
+    w_desc = str(env.get("weather_desc", "")).lower()
+    w_summary = env.get("weather_summary", "Standard Stadium")
+
+    # 1. Vegas Implied Team Total (TD & Red-Zone Equity)
+    td_equity = (implied - 22.0) * 0.12
+    adj += td_equity
+
+    # 2. Point Spread 4th-Quarter Game Script
+    clean_n, _ = clean_player_name(player.name)
+    is_pass_rb = clean_n in PASS_CATCHING_RBS
+    script_tag = "Balanced Script"
+
+    if spread <= -5.5:
+        if pos == "RB" and not is_pass_rb:
+            adj += 0.45
+            script_tag = f"Heavy Favorite ({spread}) → +4th Qtr Rush Volume"
+        else:
+            script_tag = f"Favorite ({spread})"
+    elif spread >= 5.5:
+        if pos in ("WR", "TE", "QB") or is_pass_rb:
+            adj += 0.40
+            script_tag = f"Trailing Underdog (+{spread}) → +Garbage-Time Pass Volume"
+        elif pos == "RB":
+            adj -= 0.45
+            script_tag = f"Underdog (+{spread}) → Rushing Script Risk"
+    else:
+        script_tag = f"Competitive Spread ({spread if spread < 0 else '+' + str(spread)})"
+
+    # 3. Dome vs Outdoor Wind/Precipitation
+    if indoor and pos in ("QB", "WR", "TE"):
+        adj += 0.30
+    elif not indoor:
+        has_precip = any(k in w_desc for k in ("rain", "snow", "storm", "showers", "sleet"))
+        if wind >= 17 or has_precip:
+            if pos in ("QB", "WR"):
+                adj -= 0.55
+            elif pos == "RB":
+                adj += 0.30
+
+    adj = round(max(-1.5, min(1.5, adj)), 1)
+    summary_line = f"Vegas Implied: {implied} pts (O/U {ou}, {script_tag}) • {w_summary}"
+    return adj, summary_line
 
 
 def analyze_micro_matchup(player, pos, espn_proj, season_avg, is_desperate=False, live_matrix=None, scheme_weight=0.45):
@@ -544,7 +858,6 @@ def analyze_micro_matchup(player, pos, espn_proj, season_avg, is_desperate=False
         battle = f"QB vs {opp} Pass Rush ({front_names}, Pressure Rating: {d['pass_rush']}, Blitz: {d['blitz']}%)"
         trench_lb_note = f"Coverage Shell Read: {opp} runs {d['shell']} ({zone_pct}% Zone / {man_pct}% Man | CBs: {cb_names})."
 
-    # Apply Self-Tuned Scheme Multiplier learned from past weeks' backtests
     adj = round(max(-2.5, min(2.5, raw_adj * scheme_weight)), 1)
 
     if adj >= 1.1:
@@ -594,28 +907,31 @@ def analyze_micro_matchup(player, pos, espn_proj, season_avg, is_desperate=False
 
 def run_self_learning_audit(roster_players, free_agents, current_week, live_def_matrix):
     """
-    Looks back at completed weeks (Weeks 1 through current_week - 1),
-    evaluates how the uncalibrated formula performed against ACTUAL points scored,
-    and automatically re-weights the formula to eliminate over-projection bias.
+    Audits completed weeks (Weeks 1 through current_week - 1) and computes
+    POSITION-SPECIFIC ('QB', 'RB', 'WR', 'TE') calibration weights so a low-scoring
+    TE week never distorts RB or WR projections.
     """
     audit_weeks = [w for w in range(max(1, current_week - 4), current_week)]
+    default_pos_model = {"espn_w": 0.65, "season_w": 0.35, "scheme_mult": 0.45, "yt_mult": 0.38, "bias_offset": -0.4}
+
     if not audit_weeks:
         return {
             "espn_w": 0.65,
             "season_w": 0.35,
             "scheme_mult": 0.45,
-            "yt_mult": 0.40,
+            "yt_mult": 0.38,
             "bias_offset": 0.0,
+            "pos_models": {p: dict(default_pos_model) for p in ("QB", "RB", "WR", "TE")},
             "old_mae": 0.0,
             "new_mae": 0.0,
             "old_bias": 0.0,
             "samples": 0,
             "summary": "Week 1 Baseline (No past completed weeks to audit yet).",
+            "pos_summary": "Using default baseline weights across all positions.",
             "receipts": []
         }
 
-    # Combine your roster + top free agents for backtesting
-    pool = list(roster_players) + list(free_agents[:35])
+    pool = list(roster_players) + list(free_agents[:45])
     seen_names = set()
     unique_pool = []
     for p in pool:
@@ -638,18 +954,15 @@ def run_self_learning_audit(roster_players, free_agents, current_week, live_def_
                 continue
             proj = float(proj)
             actual = float(actual)
-            # Only audit active weeks where the player was projected to play (>= 4.5 pts)
             if proj < 4.5 or (actual == 0.0 and proj < 7.0):
                 continue
 
             eff_season = season_avg if season_avg > 0 else proj
             old_base = (0.70 * proj) + (0.30 * eff_season)
 
-            # Estimate what the old uncalibrated additive model added on positive-matchup/hype targets
             scheme_raw, _, _ = analyze_micro_matchup(
                 p, p.position, proj, eff_season, is_desperate=True, live_matrix=live_def_matrix, scheme_weight=1.0
             )
-            # In the old formula, recommended pickups averaged +1.8 YT + unscaled scheme bonus
             simulated_old_yt = 1.8 if p.name in roster_names else 1.2
             old_blended = round(old_base + max(0.0, scheme_raw) + simulated_old_yt, 1)
 
@@ -671,93 +984,103 @@ def run_self_learning_audit(roster_players, free_agents, current_week, live_def_
             "espn_w": 0.65,
             "season_w": 0.35,
             "scheme_mult": 0.45,
-            "yt_mult": 0.40,
+            "yt_mult": 0.38,
             "bias_offset": -0.5,
+            "pos_models": {p: dict(default_pos_model) for p in ("QB", "RB", "WR", "TE")},
             "old_mae": 0.0,
             "new_mae": 0.0,
             "old_bias": 0.0,
             "samples": 0,
             "summary": "Calibrated with conservative anti-inflation weights.",
+            "pos_summary": "Default conservative weights active.",
             "receipts": []
         }
 
-    # 1. Calculate Old Formula Error & Over-Projection Bias
-    old_bias = sum(r["old_blended"] - r["actual"] for r in records) / len(records)
-    old_mae = sum(abs(r["old_blended"] - r["actual"]) for r in records) / len(records)
+    def calibrate_subset(sub_records):
+        if not sub_records:
+            return dict(default_pos_model)
+        sub_bias = sum(r["old_blended"] - r["actual"] for r in sub_records) / len(sub_records)
+        best_ew = 0.60
+        best_mae = 999.0
+        for wc in (0.35, 0.50, 0.65, 0.80):
+            c_mae = sum(
+                abs(((wc * r["espn_proj"]) + ((1.0 - wc) * r["season_avg"])) - r["actual"])
+                for r in sub_records
+            ) / len(sub_records)
+            if c_mae < best_mae:
+                best_mae = c_mae
+                best_ew = wc
+        best_sw = round(1.0 - best_ew, 2)
 
-    # 2. Grid-Search Optimal ESPN vs Full-Season PPG Blend on Completed Weeks
-    best_espn_w = 0.60
-    best_base_mae = 999.0
-    for w_cand in (0.35, 0.45, 0.55, 0.65, 0.75):
-        cand_mae = sum(
-            abs(((w_cand * r["espn_proj"]) + ((1.0 - w_cand) * r["season_avg"])) - r["actual"])
-            for r in records
-        ) / len(records)
-        if cand_mae < best_base_mae:
-            best_base_mae = cand_mae
-            best_espn_w = w_cand
+        if sub_bias > 1.2:
+            df = max(0.25, min(0.50, 1.0 / (1.0 + (sub_bias * 0.45))))
+        else:
+            df = 0.48
+        s_mult = round(df, 2)
+        y_mult = round(df * 0.82, 2)
 
-    best_season_w = round(1.0 - best_espn_w, 2)
+        errs = [
+            ((best_ew * r["espn_proj"]) + (best_sw * r["season_avg"]) + (r["scheme_raw"] * s_mult)) - r["actual"]
+            for r in sub_records
+        ]
+        res_bias = sum(errs) / len(errs)
+        b_off = round(max(-2.2, min(0.5, -res_bias * 0.70)), 2)
+        return {
+            "espn_w": best_ew,
+            "season_w": best_sw,
+            "scheme_mult": s_mult,
+            "yt_mult": y_mult,
+            "bias_offset": b_off
+        }
 
-    # 3. Dynamically Scale Down Scheme & YT Multipliers Based on Over-Projection Severity
-    # The more the old formula over-projected, the harder the AI dampens additive hype bonuses
-    if old_bias > 1.5:
-        damp_factor = max(0.25, min(0.50, 1.0 / (1.0 + (old_bias * 0.45))))
-    else:
-        damp_factor = 0.50
+    global_model = calibrate_subset(records)
+    pos_models = {}
+    pos_notes = []
+    for pos in ("QB", "RB", "WR", "TE"):
+        pos_recs = [r for r in records if r["pos"] == pos]
+        if len(pos_recs) >= 3:
+            pos_models[pos] = calibrate_subset(pos_recs)
+        else:
+            pos_models[pos] = dict(global_model)
+        pm = pos_models[pos]
+        b_str = f"+{pm['bias_offset']}" if pm['bias_offset'] >= 0 else f"{pm['bias_offset']}"
+        pos_notes.append(f"{pos}: {int(pm['espn_w']*100)}/{int(pm['season_w']*100)} Base, {pm['scheme_mult']}x Scheme, {b_str} Offset")
 
-    tuned_scheme_mult = round(damp_factor, 2)
-    tuned_yt_mult = round(damp_factor * 0.85, 2)
+    old_bias = round(sum(r["old_blended"] - r["actual"] for r in records) / len(records), 2)
+    old_mae = round(sum(abs(r["old_blended"] - r["actual"]) for r in records) / len(records), 2)
 
-    # 4. Compute Residual Bias Offset so average projection matches average actual points
-    raw_new_errors = []
-    for r in records:
-        new_base = (best_espn_w * r["espn_proj"]) + (best_season_w * r["season_avg"])
-        new_sch = r["scheme_raw"] * tuned_scheme_mult
-        new_est = new_base + new_sch
-        raw_new_errors.append(new_est - r["actual"])
-
-    residual_bias = sum(raw_new_errors) / len(raw_new_errors)
-    # Apply 70% of residual bias as a permanent reality offset (clamped between -2.2 and +0.5)
-    bias_offset = round(max(-2.2, min(0.5, -residual_bias * 0.70)), 2)
-
-    # 5. Score New Formula MAE & Build Audit Receipts for Your Roster Players First
     new_mae_total = 0.0
     for r in records:
-        new_base = (best_espn_w * r["espn_proj"]) + (best_season_w * r["season_avg"])
-        new_proj = round(max(1.0, new_base + (r["scheme_raw"] * tuned_scheme_mult) + bias_offset), 1)
+        pm = pos_models.get(r["pos"], global_model)
+        new_base = (pm["espn_w"] * r["espn_proj"]) + (pm["season_w"] * r["season_avg"])
+        new_proj = round(max(1.0, new_base + (r["scheme_raw"] * pm["scheme_mult"]) + pm["bias_offset"]), 1)
         r["new_blended"] = new_proj
         r["new_error"] = round(new_proj - r["actual"], 1)
         new_mae_total += abs(new_proj - r["actual"])
 
     new_mae = round(new_mae_total / len(records), 2)
-    old_mae = round(old_mae, 2)
-    old_bias = round(old_bias, 2)
-
-    # Sort receipts: Your rostered players from the most recent completed week first
     records.sort(key=lambda x: (not x["is_rostered"], -x["week"], -abs(x["old_error"])))
-    top_receipts = records[:10]
 
     summary_text = (
         f"Audited {len(records)} player-weeks (Wks {audit_weeks[0]}–{audit_weeks[-1]}). "
-        f"Old formula over-projected by {'+' if old_bias >= 0 else ''}{old_bias} pts/gm (MAE: {old_mae}). "
-        f"Auto-tuned base to {int(best_espn_w*100)}% ESPN / {int(best_season_w*100)}% Season Avg, "
-        f"dampened Scheme weight to {tuned_scheme_mult}x & YT weight to {tuned_yt_mult}x, "
-        f"and applied a {bias_offset} pt reality correction (New MAE: {new_mae} pts)."
+        f"Old uncalibrated model over-projected by {'+' if old_bias >= 0 else ''}{old_bias} pts/gm (MAE: {old_mae}). "
+        f"Position-Specific Auto-Tuner reduced error to MAE {new_mae} pts."
     )
 
     return {
-        "espn_w": best_espn_w,
-        "season_w": best_season_w,
-        "scheme_mult": tuned_scheme_mult,
-        "yt_mult": tuned_yt_mult,
-        "bias_offset": bias_offset,
+        "espn_w": global_model["espn_w"],
+        "season_w": global_model["season_w"],
+        "scheme_mult": global_model["scheme_mult"],
+        "yt_mult": global_model["yt_mult"],
+        "bias_offset": global_model["bias_offset"],
+        "pos_models": pos_models,
         "old_mae": old_mae,
         "new_mae": new_mae,
         "old_bias": old_bias,
         "samples": len(records),
         "summary": summary_text,
-        "receipts": top_receipts
+        "pos_summary": " &nbsp;|&nbsp; ".join(pos_notes),
+        "receipts": records[:10]
     }
 
 
@@ -1045,7 +1368,6 @@ def find_player_clips(player_name, yt_videos, is_desperate=False, yt_mult=0.40):
     consensus_boost = len(bullish_channels) * (0.55 if is_desperate else 0.35)
     consensus_penalty = len(bearish_channels) * 0.65
 
-    # Multiply raw YT sentiment by the Self-Tuned YT Multiplier learned from backtesting
     raw_yt_bonus = (cumulative_sentiment_pts + consensus_boost - consensus_penalty) * yt_mult
 
     max_cap = 2.4 if is_desperate else 1.6
@@ -1162,8 +1484,11 @@ class handler(BaseHTTPRequestHandler):
 
             my_team = next((t for t in league.teams if team_name.lower() in t.team_name.lower()), league.teams[0])
 
+            # 1. Fetch Live Vegas Odds, Implied Totals, Weather & Scoreboard Matchups
+            vegas_weather_map, sb_opp_map = fetch_live_vegas_and_weather(current_week=week, target_year=year)
+
             free_agents = league.free_agents(week=week, size=100)
-            nfl_opp_map = {}
+            nfl_opp_map = dict(sb_opp_map)
 
             def register_nfl_matchup(pro_team, pro_opp):
                 pt = normalize_team_abbrev(pro_team)
@@ -1206,27 +1531,46 @@ class handler(BaseHTTPRequestHandler):
                     return nfl_opp_map[pro_team]
                 return "BYE"
 
-            # Resolve opponents on roster & free agents first so the backtester has full context
             for p in my_team.roster:
                 p.pro_opponent = resolve_player_opponent(p)
             for fa in free_agents[:85]:
                 fa.pro_opponent = resolve_player_opponent(fa)
 
             yt_videos = fetch_weekly_2026_videos(current_week=week, target_year=year)
-            live_def_matrix = build_live_defense_matrix(league=league, current_week=week, target_year=year)
+            live_def_matrix, offense_inj_map = build_live_defense_and_offense_matrix(
+                league=league, current_week=week, target_year=year
+            )
 
-            # --- RUN SELF-LEARNING BACKTEST AUDIT ACROSS COMPLETED WEEKS ---
+            # 2. Run Position-Specific Self-Learning Backtest Audit Across Completed Weeks
             calibration = run_self_learning_audit(
                 my_team.roster, free_agents, current_week=week, live_def_matrix=live_def_matrix
             )
-            espn_w = calibration["espn_w"]
-            season_w = calibration["season_w"]
-            scheme_mult = calibration["scheme_mult"]
-            yt_mult = calibration["yt_mult"]
-            bias_offset = calibration["bias_offset"]
+            pos_models = calibration.get("pos_models", {})
 
-            def get_true_baseline(player):
-                """Uses Self-Tuned ESPN vs Full-Season PPG weights learned from past weeks."""
+            playoff_data = calculate_playoff_odds(league, my_team, week)
+            playoff_pct = playoff_data["playoff_pct"]
+
+            if playoff_pct < 35.0:
+                mode = "DESPERATION MODE"
+                mode_desc = "Playoff odds are critical (<35%). Hunting vacated volume, Vegas shootout scripts, and scheme mismatches calibrated by position backtesting."
+            elif playoff_pct < 60.0:
+                mode = "AGGRESSIVE PUSH"
+                mode_desc = "Playoff race is tight. Blending position-tuned baselines with Vegas implied totals, xFP usage, and scheme edges."
+            else:
+                mode = "CONTENDER MODE"
+                mode_desc = "Strong playoff position. Prioritizing high-floor xFP volume, Vegas favorites, and scheme fits."
+
+            is_desperate = playoff_pct < 45.0
+
+            def score_player_full(player):
+                pos = player.position
+                pm = pos_models.get(pos, calibration)
+                espn_w = pm.get("espn_w", 0.65)
+                season_w = pm.get("season_w", 0.35)
+                scheme_mult = pm.get("scheme_mult", 0.45)
+                yt_mult = pm.get("yt_mult", 0.38)
+                bias_offset = pm.get("bias_offset", -0.4)
+
                 curr_stats = player.stats.get(week, {})
                 espn_proj = float(curr_stats.get('projected_points', player.projected_total_points / 17))
 
@@ -1239,49 +1583,55 @@ class handler(BaseHTTPRequestHandler):
                     ]
                     season_avg = (sum(played_pts) / len(played_pts)) if played_pts else espn_proj
 
-                if season_avg > 0 and espn_proj > 0:
+                # Evaluate xFP Opportunity Volume, Teammate Vacated Volume & O-Line Health
+                vol_adj, has_vacated_boost, usage_note = evaluate_volume_and_vacated_context(
+                    player, pos, week, espn_proj, season_avg, offense_inj_map
+                )
+
+                # If a starter ahead of this player is OUT/IR, weight 85% toward this week's expanded projection
+                if has_vacated_boost and espn_proj > season_avg:
+                    true_base = (0.85 * espn_proj) + (0.15 * season_avg)
+                elif season_avg > 0 and espn_proj > 0:
                     true_base = (espn_w * espn_proj) + (season_w * season_avg)
                 else:
                     true_base = espn_proj
 
-                return round(espn_proj, 1), round(season_avg, 1), round(true_base, 1)
+                espn_proj = round(espn_proj, 1)
+                season_avg = round(season_avg, 1)
+                true_base = round(true_base, 1)
 
-            playoff_data = calculate_playoff_odds(league, my_team, week)
-            playoff_pct = playoff_data["playoff_pct"]
-
-            if playoff_pct < 35.0:
-                mode = "DESPERATION MODE"
-                mode_desc = "Playoff odds are critical (<35%). Hunting scheme mismatches & film breakouts, calibrated by weekly backtest shrinkage."
-            elif playoff_pct < 60.0:
-                mode = "AGGRESSIVE PUSH"
-                mode_desc = "Playoff race is tight. Blending self-tuned usage baselines with scheme edges and film study."
-            else:
-                mode = "CONTENDER MODE"
-                mode_desc = "Strong playoff position. Prioritizing high-floor scheme fits and blocking league rivals."
-
-            is_desperate = playoff_pct < 45.0
-
-            def score_player_full(player):
-                espn_proj, season_avg, true_base = get_true_baseline(player)
-
-                scheme_adj, matchup_grade, matchup_report = analyze_micro_matchup(
-                    player, player.position, espn_proj, season_avg, is_desperate, live_def_matrix, scheme_weight=scheme_mult
+                # Evaluate Vegas Implied Team Total, Spread Game Script & Stadium Weather
+                vegas_adj, vegas_note = evaluate_vegas_and_weather_context(
+                    player, pos, vegas_weather_map
                 )
 
+                # Evaluate Opposing Defensive Scheme, Coverage Shell & 1-on-1 Matchup
+                scheme_adj, matchup_grade, matchup_report = analyze_micro_matchup(
+                    player, pos, espn_proj, season_avg, is_desperate, live_def_matrix, scheme_weight=scheme_mult
+                )
+                matchup_report["vegas_weather_note"] = vegas_note
+                matchup_report["usage_ol_note"] = usage_note
+
+                # Evaluate Context-Window YouTube Film Sentiment
                 channels, mentions, clips, yt_bonus, sent_label = find_player_clips(
                     player.name, yt_videos, is_desperate, yt_mult=yt_mult
                 )
 
-                # Apply Empirical Bayes Shrinkage when both Scheme and YT are positive so bonuses never double-count
-                combined_bonus = scheme_adj + yt_bonus
-                if scheme_adj > 0 and yt_bonus > 0:
-                    combined_bonus = round(combined_bonus * 0.80, 1)
+                # Combine adjustments with Empirical Bayes Shrinkage so positive stacks don't over-inflate
+                total_positive_stack = sum(x for x in (scheme_adj, yt_bonus, vol_adj, vegas_adj) if x > 0)
+                total_negative_stack = sum(x for x in (scheme_adj, yt_bonus, vol_adj, vegas_adj) if x < 0)
+                if total_positive_stack > 1.8:
+                    total_positive_stack = 1.8 + ((total_positive_stack - 1.8) * 0.55)
 
-                blended_score = round(max(0.0, true_base + combined_bonus + bias_offset), 1)
+                net_addons = round(total_positive_stack + total_negative_stack, 1)
+                blended_score = round(max(0.0, true_base + net_addons + bias_offset), 1)
+
                 return {
                     "espn_proj": espn_proj,
                     "recent_avg": season_avg,
                     "true_base": true_base,
+                    "vol_adj": vol_adj,
+                    "vegas_adj": vegas_adj,
                     "scheme_adj": scheme_adj,
                     "matchup_grade": matchup_grade,
                     "matchup_report": matchup_report,
@@ -1303,6 +1653,8 @@ class handler(BaseHTTPRequestHandler):
                     "slot": p.lineupSlot,
                     "proj": sc["espn_proj"],
                     "true_base": sc["true_base"],
+                    "vol_adj": sc["vol_adj"],
+                    "vegas_adj": sc["vegas_adj"],
                     "scheme_adj": sc["scheme_adj"],
                     "matchup_grade": sc["matchup_grade"],
                     "matchup_report": sc["matchup_report"],
@@ -1334,9 +1686,13 @@ class handler(BaseHTTPRequestHandler):
                     sc = score_player_full(fa)
 
                     if sc["blended_score"] > weakest["blended_score"]:
-                        tag = "Calibrated Upgrade"
-                        if sc["scheme_adj"] >= 0.8 and sc["yt_bonus"] >= 0.5:
+                        tag = "Calibrated Multi-Factor Upgrade"
+                        if sc["vol_adj"] >= 0.8 and sc["scheme_adj"] >= 0.5:
+                            tag = "⚡ Vacated Volume + Scheme Smash"
+                        elif sc["scheme_adj"] >= 0.8 and sc["yt_bonus"] >= 0.5:
                             tag = "🎯 Elite Scheme + Bullish Film Smash"
+                        elif sc["vegas_adj"] >= 0.6 and sc["scheme_adj"] >= 0.5:
+                            tag = "🎰 Vegas Shootout + Scheme Edge"
                         elif sc["scheme_adj"] >= 0.8:
                             tag = "🛡️ Defensive Scheme Mismatch"
                         elif sc["yt_bonus"] >= 0.8:
@@ -1349,6 +1705,8 @@ class handler(BaseHTTPRequestHandler):
                             "espn_proj": sc["espn_proj"],
                             "recent_avg": sc["recent_avg"],
                             "true_base": sc["true_base"],
+                            "vol_adj": sc["vol_adj"],
+                            "vegas_adj": sc["vegas_adj"],
                             "scheme_adj": sc["scheme_adj"],
                             "matchup_grade": sc["matchup_grade"],
                             "matchup_report": sc["matchup_report"],
